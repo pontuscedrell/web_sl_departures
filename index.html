@@ -2,7 +2,7 @@
 <html lang="sv">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=0.8">
     <title>SL Avgångar</title>
     <style>
         body {
@@ -61,16 +61,31 @@
             border-bottom: 1px solid #444;
         }
 
-        #banner {
-            background-color: red;
-            color: #333;
-            padding: 1rem;
-            max-width: 600px;
-            text-align: center;
-            font-weight: bold;
-            border-radius: 5px;
-            display: none;
-        }
+		#banner {
+		    background-color: lightgrey;
+		    border: 3px solid red;
+		    color: #333;
+		    padding: 1rem;
+		    max-width: 600px;
+		    text-align: left;
+		    font-weight: bold;
+		    border-radius: 5px;
+		    display: none;
+		    display: flex; /* Use flexbox for two-column layout */
+		    align-items: center; /* Center align the content vertically */
+		    gap: 10px; /* Space between the triangle and text */
+		}
+
+		#banner .warning-icon {
+		    font-size: 2.5rem; /* Larger triangle */
+		    flex-shrink: 0; /* Prevent the triangle from shrinking */
+		}
+
+		#banner .warning-text {
+		    flex-grow: 1; /* Allow the text to take up the rest of the space */
+		    word-wrap: break-word; /* Ensure the text wraps */
+		}
+
     </style>
 </head>
 <body>
@@ -81,6 +96,7 @@
             <tr>
                 <th>Linje</th>
                 <th>Destination</th>
+                <th class="time">OM</th>
                 <th class="time">Tid</th>
             </tr>
         </thead>
@@ -167,67 +183,140 @@
             return departures;
         }
 
-        function updateTable(departures) {
-            const tbody = document.querySelector('#departure-table tbody');
-            tbody.innerHTML = '';
+function updateTable(departures) {
+    const tbody = document.querySelector('#departure-table tbody');
+    tbody.innerHTML = '';
 
-            if (departures.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="3">Inga avgångar hittades</td></tr>';
-                return;
-            }
+    if (departures.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4">Inga avgångar hittades</td></tr>';
+        document.getElementById("banner").style.display = "none";
+        return;
+    }
 
-            departures.forEach(dep => {
-                const row = document.createElement('tr');
+    // Count deviation message occurrences
+    const deviationCounts = {};
+    const total = departures.length;
 
-                const { backgroundColor: lineBackgroundColor, textColor: lineColor } = getLineColors(dep.line.designation);
-
-                const lineCell = `<td style="text-align: center;">
-                    <span style="background-color: ${lineBackgroundColor}; color: ${lineColor}; padding: 0.5rem 1rem; border-radius: 12px; display: inline-block;">
-                        ${dep.line.designation}
-                    </span>
-                </td>`;
-
-                const scheduled = new Date(dep.scheduled);
-                const expected = new Date(dep.expected);
-                const diffMin = Math.round((expected - scheduled) / 60000);
-
-				const delayText = Math.abs(diffMin) >= 1
-				    ? `<span style="font-size: 0.9rem; color: #ffa500; margin-right: 0.3rem;">${diffMin > 0 ? '+' : ''}${diffMin}</span>`
-				    : '';
-
-                let timeDisplay = dep.display;
-                let cancellationText = '';
-
-                if (dep.state === 'CANCELLED') {
-                    timeDisplay = `<span style="text-decoration: line-through; color: red;">${dep.display}</span>`;
-                    cancellationText = `<span style="color: red; font-size: 1rem; margin-right: 10px; vertical-align: center;">Inställd</span>`;
-                } else {
-                    timeDisplay = `${delayText}${dep.display}`;
-                }
-
-                let destinationText = dep.destination;
-					if (dep.deviations && dep.deviations.length > 0) {
-					    destinationText = `<span style="color: yellow; font-size: 1.5rem; margin-right: 0.5rem;">⚠️</span>` + destinationText;
-					}
-
-                row.innerHTML = `
-                    ${lineCell}
-                    <td>
-                        ${destinationText}
-                        
-                        ${dep.via ? `<span style="font-size: 1rem; color: #D3D3D3;"> via ${dep.via}</span>` : ''}
-                    </td>
-                    <td class="time ${dep.state !== 'EXPECTED' && dep.state !== 'ATSTOP' ? 'delayed' : ''}">
-                        ${cancellationText}${timeDisplay}
-                    </td>
-                `;
-
-
-
-                row.addEventListener('click', () => toggleExpand(row, dep));
-                tbody.appendChild(row);
+    departures.forEach(dep => {
+        if (dep.deviations) {
+            dep.deviations.forEach(dev => {
+                deviationCounts[dev.message] = (deviationCounts[dev.message] || 0) + 1;
             });
         }
+    });
+
+    // Find deviation messages present in >= 30% of departures
+    const bannerDeviations = Object.entries(deviationCounts)
+        .filter(([_, count]) => count / total >= 0.3)
+        .map(([msg]) => msg);
+
+    const dismissed = JSON.parse(localStorage.getItem("dismissedDeviations") || "[]");
+    const filteredBannerDeviations = bannerDeviations.filter(msg => !dismissed.includes(msg));
+
+    // Update the banner
+    const banner = document.getElementById("banner");
+    if (filteredBannerDeviations.length > 0) {
+        banner.style.display = "block";
+        banner.innerHTML = `
+            <div style="display: flex; align-items: flex-start; gap: 1rem;">
+                <div style="font-size: 2.5rem;">⚠️</div>
+                <div style="flex: 1;">
+                    ${filteredBannerDeviations.map((msg, index) => `
+                        <div style="position: relative; margin-bottom: 0.5rem; padding-right: 1.5rem;">
+                            ${msg}
+                            <span 
+                                onclick="dismissDeviation('${msg.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" 
+                                style="position: absolute; right: 0; top: 0; cursor: pointer; font-weight: bold;">❌</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    } else {
+        banner.style.display = "none";
+    }
+
+    const bannerSet = new Set(bannerDeviations);
+
+    departures.forEach(dep => {
+        const row = document.createElement('tr');
+
+        const { backgroundColor: lineBackgroundColor, textColor: lineColor } = getLineColors(dep.line.designation);
+
+        const lineCell = `<td style="text-align: center;">
+            <span style="background-color: ${lineBackgroundColor}; color: ${lineColor}; padding: 0.5rem 1rem; border-radius: 12px; display: inline-block;">
+                ${dep.line.designation}
+            </span>
+        </td>`;
+
+        const scheduled = new Date(dep.scheduled);
+        const expected = new Date(dep.expected);
+        const diffMin = Math.round((expected - scheduled) / 60000);
+
+        const delayText = Math.abs(diffMin) >= 1
+            ? `<span style="font-size: 0.9rem; color: #ffa500; margin-right: 0.3rem; vertical-align: middle;">${diffMin > 0 ? '+' : ''}${diffMin}</span>`
+            : '';
+
+        let timeDisplay = dep.display;
+        let cancellationText = '';
+
+        if (dep.state === 'CANCELLED') {
+            timeDisplay = `<span style="text-decoration: line-through; color: red;">${dep.display}</span>`;
+
+            cancellationText = `<span style="color: red; font-size: 1rem; margin-right: 10px;">Inställd</span>`;
+        } else {
+            timeDisplay = `${delayText}${dep.display}`;
+        }
+
+        let destinationText = dep.destination;
+        if (dep.deviations && dep.deviations.some(dev => !bannerSet.has(dev.message))) {
+            destinationText = `<span style="color: yellow; font-size: 1.5rem; margin-right: 0.5rem;">⚠️</span>` + destinationText;
+        }
+
+        // Calculate new estimated departure time
+        const estimatedTime = new Date(dep.expected);
+        const estimatedTimeFormatted = `${estimatedTime.getHours().toString().padStart(2, '0')}:${estimatedTime.getMinutes().toString().padStart(2, '0')}`;
+
+        row.innerHTML = `
+            ${lineCell}
+            <td>
+                ${destinationText}
+                ${dep.via ? `<span style="font-size: 1rem; color: #D3D3D3;"> via ${dep.via}</span>` : ''}
+            </td>
+            <td class="time ${dep.state !== 'EXPECTED' && dep.state !== 'ATSTOP' ? 'delayed' : ''}">
+                ${cancellationText}${timeDisplay}
+            </td>
+            <td class="time" style="text-align: center;">
+                <span style="color: white; padding: 0.3rem 0.8rem; border-radius: 12px;">
+                    ${estimatedTimeFormatted}
+                </span>
+            </td>
+        `;
+
+        row.addEventListener('click', () => toggleExpand(row, dep));
+        tbody.appendChild(row);
+    });
+
+    function dismissDeviation(msg) {
+        const dismissed = JSON.parse(localStorage.getItem("dismissedDeviations") || "[]");
+        if (!dismissed.includes(msg)) {
+            dismissed.push(msg);
+            localStorage.setItem("dismissedDeviations", JSON.stringify(dismissed));
+        }
+        fetchDepartures(); // Refresh to hide dismissed deviation
+    }
+}
+
+		    function dismissDeviation(msg) {
+		    const dismissed = JSON.parse(localStorage.getItem("dismissedDeviations") || "[]");
+		    if (!dismissed.includes(msg)) {
+		        dismissed.push(msg);
+		        localStorage.setItem("dismissedDeviations", JSON.stringify(dismissed));
+		    }
+		    fetchDepartures(); // Refresh to hide dismissed deviation
+		}
+
+
 
         function trimTime(dateString) {
             const date = new Date(dateString);
@@ -257,12 +346,13 @@
                 const plannedTime = trimTime(dep.expected);
                 expandedRow.innerHTML = `
                     <td colspan="3">
+                    	${deviationMessage}
                         <strong>Schemalagd tid:</strong> ${scheduledTime}<br>
                         <strong>Planerad tid:</strong> ${plannedTime}<br>
                         <strong>Resestatus:</strong> ${dep.journey.state}<br>
                         <strong>Förväntning:</strong> ${dep.journey.prediction_state || 'Ej avgått'}<br>
-                        <strong>Avgångsstatus:</strong> ${dep.state}<br>
-                		<strong>Störningsinformation:</strong> ${deviationMessage}
+                        <strong>Avgångsstatus:</strong> ${dep.state}
+                		
                     </td>
                 `;
                 row.parentNode.insertBefore(expandedRow, row.nextSibling);
@@ -296,6 +386,26 @@
             clearInterval(refreshInterval);
             refreshInterval = setInterval(fetchDepartures, 30000);
         }
+
+        // Function to flush screen colors
+function flushScreen() {
+    document.body.style.backgroundColor = "red"; // Change to a solid color (e.g., red)
+    setTimeout(() => {
+        document.body.style.backgroundColor = originalBackgroundColor; // Revert back to original color
+    }, 100); // Change back after 100 milliseconds (adjust the timing if needed)
+}
+
+// Function to calculate the time remaining until the next full hour
+function timeUntilNextHour() {
+    const now = new Date();
+    return (60 - now.getMinutes()) * 60 * 1000 - now.getSeconds() * 1000; // Time in ms until the next full hour
+}
+
+// Set a timeout to run exactly on the hour
+setTimeout(() => {
+    flushScreen(); // Run the flush screen immediately at the start of the next hour
+    setInterval(flushScreen, 3600000); // Then repeat it every hour
+}, timeUntilNextHour()); // Set the timeout based on the time remaining until the next hour
     </script>
 </body>
 </html>
