@@ -21,7 +21,7 @@
             width: 100%;
             max-width: 600px;
             border-collapse: collapse;
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             margin-bottom: 1rem;
         }
 
@@ -48,7 +48,7 @@
         #deviation-info {
             font-size: 1rem;
             color: #ffa500;
-            max-width: 600px;
+            max-width: 500px;
             text-align: left;
             white-space: pre-wrap;
         }
@@ -66,7 +66,7 @@
 		    border: 3px solid red;
 		    color: #333;
 		    padding: 1rem;
-		    max-width: 600px;
+		    max-width: 500px;
 		    text-align: left;
 		    font-weight: bold;
 		    border-radius: 5px;
@@ -97,7 +97,6 @@
                 <th>Linje</th>
                 <th>Destination</th>
                 <th class="time">OM</th>
-                <th class="time">Tid</th>
             </tr>
         </thead>
         <tbody>
@@ -257,7 +256,13 @@ function updateTable(departures) {
             ? `<span style="font-size: 0.9rem; color: #ffa500; margin-right: 0.3rem; vertical-align: middle;">${diffMin > 0 ? '+' : ''}${diffMin}</span>`
             : '';
 
-        let timeDisplay = dep.display;
+       	let timeDisplay = dep.display.replace(/\s?min/, 'm');
+
+       	if (timeDisplay && timeDisplay.endsWith(" min")) {
+            // Manually strip " min" and replace with "m"
+            timeDisplay = timeDisplay.slice(0, -4) + "m";
+        }
+
         let cancellationText = '';
 
         if (dep.state === 'CANCELLED') {
@@ -286,26 +291,21 @@ function updateTable(departures) {
             <td class="time ${dep.state !== 'EXPECTED' && dep.state !== 'ATSTOP' ? 'delayed' : ''}">
                 ${cancellationText}${timeDisplay}
             </td>
-            <td class="time" style="text-align: center;">
-                <span style="color: white; padding: 0.3rem 0.8rem; border-radius: 12px;">
-                    ${estimatedTimeFormatted}
-                </span>
-            </td>
         `;
 
         row.addEventListener('click', () => toggleExpand(row, dep));
         tbody.appendChild(row);
     });
 
-    function dismissDeviation(msg) {
-        const dismissed = JSON.parse(localStorage.getItem("dismissedDeviations") || "[]");
-        if (!dismissed.includes(msg)) {
-            dismissed.push(msg);
-            localStorage.setItem("dismissedDeviations", JSON.stringify(dismissed));
-        }
-        fetchDepartures(); // Refresh to hide dismissed deviation
-    }
-}
+		    function dismissDeviation(msg) {
+		        const dismissed = JSON.parse(localStorage.getItem("dismissedDeviations") || "[]");
+		        if (!dismissed.includes(msg)) {
+		            dismissed.push(msg);
+		            localStorage.setItem("dismissedDeviations", JSON.stringify(dismissed));
+		        }
+		        fetchDepartures(); // Refresh to hide dismissed deviation
+		    }
+		}
 
 		    function dismissDeviation(msg) {
 		    const dismissed = JSON.parse(localStorage.getItem("dismissedDeviations") || "[]");
