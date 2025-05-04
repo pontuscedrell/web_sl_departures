@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SL Avgångar</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background: #111;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+            user-select: none;
+            cursor: pointer;
+        }
+
+        table {
+            width: 100%;
+            max-width: 600px;
+            border-collapse: collapse;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        th, td {
+            padding: 0.75rem;
+            border-bottom: 1px solid #555;
+            text-align: left;
+        }
+
+        th {
+            text-transform: uppercase;
+            color: #bbb;
+        }
+
+        .time {
+            text-align: right;
+        }
+
+        .delayed {
+            color: red;
+            font-weight: bold;
+        }
+
+        #deviation-info {
+            font-size: 1rem;
+            color: #ffa500;
+            max-width: 600px;
+            text-align: left;
+            white-space: pre-wrap;
+        }
+
+        .expanded {
+            background-color: #333;
+            color: #fff;
+            padding: 1rem;
+            font-size: 1rem;
+            border-bottom: 1px solid #444;
+        }
+
+        #banner {
+            background-color: red;
+            color: #333;
+            padding: 1rem;
+            max-width: 600px;
+            text-align: center;
+            font-weight: bold;
+            border-radius: 5px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1 id="stop-name">Laddar hållplats...</h1>
+    <div id="banner"></div>
+    <table id="departure-table">
+        <thead>
+            <tr>
+                <th>Linje</th>
+                <th>Destination</th>
+                <th class="time">Tid</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td colspan="3">Laddar...</td></tr>
+        </tbody>
+    </table>
+    <div id="deviation-info"></div>
+
+    <script>
+        const siteIds = {
+            "Grindsgatan": 1353,
+            "Skanstull": 9190,
+            "Södra Station": 9530,
+            "Rosenlund": 1351,
+        };
+
+        let currentStop = "Grindsgatan";
+        let currentSiteId = siteIds[currentStop];
+
+        function getCurrentSiteId() {
+            return siteIds[currentStop];
+        }
+
+        async function fetchDepartures() {
+            const siteId = getCurrentSiteId();
+            const API_URL = `https://transport.integration.sl.se/v1/sites/${siteId}/departures`;
+
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                const departures = data.departures || [];
+                const stopName = departures[0]?.stop_area?.name || "Okänd hållplats";
+                document.getElementById("stop-name").textContent = `${stopName}`;
+                console.log(data);
+                const filteredDepartures = filterDepartures(departures);
+                updateTable(filteredDepartures);
+                
+
+            } catch (err) {
+                console.error("💥 Fel vid hämtning:", err);
+                document.getElementById("stop-name").textContent = "💥 Kunde inte hämta hållplats";
+                document.querySelector('#departure-table tbody').innerHTML = `
+                    <tr><td colspan="3">💥 Kunde inte hämta avgångar</td></tr>
+                `;
+                document.getElementById("deviation-info").innerHTML = '';
+            }
+        }
+
+        function getLineColors(designation) {
+            let backgroundColor = '#555';
+            let textColor = 'white';
+
+            if (['17', '18', '19'].includes(designation)) {
+                backgroundColor = '#169d4c';
+            } else if (['1', '2', '3', '4'].includes(designation)) {
+                backgroundColor = '#008aca';
+            } else if (['57', '74', '154', '164'].includes(designation)) {
+                backgroundColor = '#d61d23';
+            } else if (['40', '41', '42', '43', '44'].includes(designation)) {
+                backgroundColor = '#d05d9a';
+            }
+
+            return { backgroundColor, textColor };
+        }
+
+        function filterDepartures(departures) {
+            if (currentStop === "Skanstull") {
+                return departures.filter(dep => dep.line.transport_mode === "METRO");
+            } else if (currentStop === "Grindsgatan") {
+                return departures.filter(dep => dep.line.transport_mode === "BUS");
+            } else if (currentStop === "Södra Station") {
+                return departures.filter(dep => dep.line.transport_mode === "TRAIN");
+            } else if (currentStop === "Rosenlund") {
+                return departures.filter(dep =>
+                    dep.line.transport_mode === "BUS" &&
+                    (
+                        (dep.line.designation === "4" && dep.direction_code === 2) ||
+                        (dep.line.designation === "74") || 
+                        (dep.line.designation === "3" && dep.direction_code === 2)
+                    ) && dep.line.designation !== "164"
+                );
+            }
+            return departures;
+        }
+
+        function updateTable(departures) {
+            const tbody = document.querySelector('#departure-table tbody');
+            tbody.innerHTML = '';
+
+            if (departures.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3">Inga avgångar hittades</td></tr>';
+                return;
+            }
+
+            departures.forEach(dep => {
+                const row = document.createElement('tr');
+
+                const { backgroundColor: lineBackgroundColor, textColor: lineColor } = getLineColors(dep.line.designation);
+
+                const lineCell = `<td style="text-align: center;">
+                    <span style="background-color: ${lineBackgroundColor}; color: ${lineColor}; padding: 0.5rem 1rem; border-radius: 12px; display: inline-block;">
+                        ${dep.line.designation}
+                    </span>
+                </td>`;
+
+                const scheduled = new Date(dep.scheduled);
+                const expected = new Date(dep.expected);
+                const diffMin = Math.round((expected - scheduled) / 60000);
+
+				const delayText = Math.abs(diffMin) >= 1
+				    ? `<span style="font-size: 0.9rem; color: #ffa500; margin-right: 0.3rem;">${diffMin > 0 ? '+' : ''}${diffMin}</span>`
+				    : '';
+
+                let timeDisplay = dep.display;
+                let cancellationText = '';
+
+                if (dep.state === 'CANCELLED') {
+                    timeDisplay = `<span style="text-decoration: line-through; color: red;">${dep.display}</span>`;
+                    cancellationText = `<span style="color: red; font-size: 1rem; margin-right: 10px; vertical-align: center;">Inställd</span>`;
+                } else {
+                    timeDisplay = `${delayText}${dep.display}`;
+                }
+
+                let destinationText = dep.destination;
+					if (dep.deviations && dep.deviations.length > 0) {
+					    destinationText = `<span style="color: yellow; font-size: 1.5rem; margin-right: 0.5rem;">⚠️</span>` + destinationText;
+					}
+
+                row.innerHTML = `
+                    ${lineCell}
+                    <td>
+                        ${destinationText}
+                        
+                        ${dep.via ? `<span style="font-size: 1rem; color: #D3D3D3;"> via ${dep.via}</span>` : ''}
+                    </td>
+                    <td class="time ${dep.state !== 'EXPECTED' && dep.state !== 'ATSTOP' ? 'delayed' : ''}">
+                        ${cancellationText}${timeDisplay}
+                    </td>
+                `;
+
+
+
+                row.addEventListener('click', () => toggleExpand(row, dep));
+                tbody.appendChild(row);
+            });
+        }
+
+        function trimTime(dateString) {
+            const date = new Date(dateString);
+            const hours = date.getHours().toString().padStart(2, '0');
+            const minutes = date.getMinutes().toString().padStart(2, '0');
+            const seconds = date.getSeconds().toString().padStart(2, '0');
+            return `${hours}:${minutes}:${seconds}`;
+        }
+
+
+
+        function toggleExpand(row, dep) {
+            const existingExpanded = row.nextElementSibling;
+
+            let deviationMessage = '';
+		    if (dep.deviations && dep.deviations.length > 0) {
+		        // Concatenate all deviation messages, if multiple
+		        deviationMessage = dep.deviations.map(dev => `${dev.message}`).join('\n');
+		    }
+
+            if (existingExpanded && existingExpanded.classList.contains('expanded')) {
+                existingExpanded.remove();
+            } else {
+                const expandedRow = document.createElement('tr');
+                expandedRow.classList.add('expanded');
+                const scheduledTime = trimTime(dep.scheduled);
+                const plannedTime = trimTime(dep.expected);
+                expandedRow.innerHTML = `
+                    <td colspan="3">
+                        <strong>Schemalagd tid:</strong> ${scheduledTime}<br>
+                        <strong>Planerad tid:</strong> ${plannedTime}<br>
+                        <strong>Resestatus:</strong> ${dep.journey.state}<br>
+                        <strong>Förväntning:</strong> ${dep.journey.prediction_state || 'Ej avgått'}<br>
+                        <strong>Avgångsstatus:</strong> ${dep.state}<br>
+                		<strong>Störningsinformation:</strong> ${deviationMessage}
+                    </td>
+                `;
+                row.parentNode.insertBefore(expandedRow, row.nextSibling);
+                resetRefreshTimer();
+            }
+        }        
+
+        function cycleStop() {
+            const stops = [
+                { name: "Grindsgatan", siteId: 1353 },
+                { name: "Skanstull", siteId: 9190 },
+                { name: "Rosenlund", siteId: 1351 },
+                { name: "Södra Station", siteId: 9530 }
+            ];
+
+            let currentStopIndex = stops.findIndex(stop => stop.name === currentStop);
+            currentStopIndex = (currentStopIndex + 1) % stops.length;
+
+            currentStop = stops[currentStopIndex].name;
+            currentSiteId = stops[currentStopIndex].siteId;
+
+            fetchDepartures();
+        }
+
+        document.getElementById("stop-name").addEventListener("click", cycleStop);
+
+        fetchDepartures();
+        let refreshInterval = setInterval(fetchDepartures, 30000);
+
+        function resetRefreshTimer() {
+            clearInterval(refreshInterval);
+            refreshInterval = setInterval(fetchDepartures, 30000);
+        }
+    </script>
+</body>
+</html>
