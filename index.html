@@ -30,6 +30,8 @@
       display: flex;
       flex: 1;
       overflow: hidden;
+      gap: 2rem;
+      padding: 1rem;
     }
 
     .direction-container {
@@ -56,7 +58,7 @@
     }
 
     th, td {
-      padding: 1rem;
+      padding: 1.5rem 1rem;
       border-bottom: 2px solid #555;
     }
 
@@ -64,6 +66,9 @@
       text-transform: uppercase;
       color: #bbb;
       font-size: 2rem;
+      position: sticky;
+      top: 0;
+      background: #111;
     }
 
     .time {
@@ -153,6 +158,7 @@
           currentStop = stopName;
           fetchDepartures();
           updateActiveStopButton();
+          document.querySelectorAll('.table-wrapper').forEach(w => w.scrollTop = 0);
         };
         btn.dataset.id = stopId;
         container.appendChild(btn);
@@ -201,7 +207,7 @@
         const south = filtered.filter(dep => dep.direction_code === 2).slice(0, 6);
         updateTable('north-table', north);
         updateTable('south-table', south);
-        document.getElementById('stop-name').textContent = data.stop_name || 'Okänd plats';
+        document.getElementById('stop-name').textContent = data.stop_name || currentStop;
       } catch (err) {
         console.error('Fel vid hämtning av avgångar:', err);
       }
