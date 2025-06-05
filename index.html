@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="sv">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SL Avgångar</title>
   <style>
     * {
@@ -69,10 +69,12 @@
       border-collapse: collapse;
     }
 
-    th, td {
+    th,
+    td {
       padding: 1rem 0.5rem;
       border-bottom: 2px solid #555;
       font-size: 1.6rem;
+      text-align: center;
     }
 
     th {
@@ -81,6 +83,15 @@
       position: sticky;
       top: 0;
       background: #111;
+    }
+
+    th:first-child,
+    td:first-child {
+      text-align: center;
+    }
+
+    td:nth-child(2) {
+      text-align: left;
     }
 
     .time {
@@ -117,19 +128,19 @@
       font-size: 1.6rem;
     }
 
-    .stop-selector button.active[data-id="1353"] {
+    .stop-selector button.active[data-id='1353'] {
       background: #d61d23;
     }
 
-    .stop-selector button.active[data-id="9190"] {
+    .stop-selector button.active[data-id='9190'] {
       background: #169d4c;
     }
 
-    .stop-selector button.active[data-id="9530"] {
+    .stop-selector button.active[data-id='9530'] {
       background: #d05d9a;
     }
 
-    .stop-selector button.active[data-id="1351"] {
+    .stop-selector button.active[data-id='1351'] {
       background: #d61d23;
     }
   </style>
@@ -137,7 +148,10 @@
 <body>
   <div id="header">
     <div id="stop-name">Laddar...</div>
-    <div id="last-updated" onclick="manualRefresh()">Senast uppdaterad: <span id="updated-time">-</span> (<span id="countdown">30</span>s)</div>
+    <div id="last-updated" onclick="manualRefresh()">
+      Senast uppdaterad: <span id="updated-time">-</span> (<span id="countdown">30</span>s)
+      <span id="battery-status" style="margin-left: 1rem; font-size: 1.4rem; color: #aaa;">--%</span>
+    </div>
   </div>
 
   <div class="tables-container">
@@ -170,24 +184,24 @@
     let countdownInterval;
 
     const knownStops = {
-      "Grindsgatan": 1353,
-      "Skanstull": 9190,
+      Grindsgatan: 1353,
+      Skanstull: 9190,
       "Södra Station": 9530,
-      "Rosenlund": 1351,
+      Rosenlund: 1351,
     };
 
     function renderStopSelector() {
-      const container = document.getElementById('stop-selector');
-      container.innerHTML = '';
+      const container = document.getElementById("stop-selector");
+      container.innerHTML = "";
       Object.entries(knownStops).forEach(([stopName, stopId]) => {
-        const btn = document.createElement('button');
+        const btn = document.createElement("button");
         btn.textContent = stopName;
         btn.onclick = () => {
           currentSiteId = stopId;
           currentStop = stopName;
           fetchDepartures();
           updateActiveStopButton();
-          document.querySelectorAll('.table-wrapper').forEach(w => w.scrollTop = 0);
+          document.querySelectorAll(".table-wrapper").forEach((w) => (w.scrollTop = 0));
         };
         btn.dataset.id = stopId;
         container.appendChild(btn);
@@ -196,33 +210,33 @@
     }
 
     function updateActiveStopButton() {
-      const buttons = document.querySelectorAll('.stop-selector button');
-      buttons.forEach(btn => {
-        btn.classList.toggle('active', parseInt(btn.dataset.id) === currentSiteId);
+      const buttons = document.querySelectorAll(".stop-selector button");
+      buttons.forEach((btn) => {
+        btn.classList.toggle("active", parseInt(btn.dataset.id) === currentSiteId);
       });
     }
 
     function getLineColors(designation) {
-      let backgroundColor = '#555';
-      let textColor = 'white';
+      let backgroundColor = "#555";
+      let textColor = "white";
 
-      if (["17", "18", "19"].includes(designation)) backgroundColor = '#169d4c';
-      else if (["1", "2", "3", "4"].includes(designation)) backgroundColor = '#008aca';
-      else if (["57", "74", "154", "164"].includes(designation)) backgroundColor = '#d61d23';
-      else if (["40", "41", "42", "43", "44"].includes(designation)) backgroundColor = '#d05d9a';
+      if (["17", "18", "19"].includes(designation)) backgroundColor = "#169d4c";
+      else if (["1", "2", "3", "4"].includes(designation)) backgroundColor = "#008aca";
+      else if (["57", "74", "154", "164"].includes(designation)) backgroundColor = "#d61d23";
+      else if (["40", "41", "42", "43", "44"].includes(designation)) backgroundColor = "#d05d9a";
 
       return { backgroundColor, textColor };
     }
 
     function filterDepartures(departures) {
       if (currentStop === "Skanstull") {
-        return departures.filter(dep => dep.line.transport_mode === "METRO");
+        return departures.filter((dep) => dep.line.transport_mode === "METRO");
       } else if (currentStop === "Grindsgatan") {
-        return departures.filter(dep => dep.line.transport_mode === "BUS");
+        return departures.filter((dep) => dep.line.transport_mode === "BUS");
       } else if (currentStop === "Södra Station") {
-        return departures.filter(dep => dep.line.transport_mode === "TRAIN");
+        return departures.filter((dep) => dep.line.transport_mode === "TRAIN");
       } else if (currentStop === "Rosenlund") {
-        return departures.filter(dep => dep.line.transport_mode === "BUS");
+        return departures.filter((dep) => dep.line.transport_mode === "BUS");
       }
       return departures;
     }
@@ -233,22 +247,22 @@
         const data = await res.json();
         const filtered = filterDepartures(data.departures);
 
-        const direction1 = filtered.filter(dep => dep.direction_code === 1).slice(0, 6);
-        const direction2 = filtered.filter(dep => dep.direction_code === 2).slice(0, 6);
+        const direction1 = filtered.filter((dep) => dep.direction_code === 1).slice(0, 6);
+        const direction2 = filtered.filter((dep) => dep.direction_code === 2).slice(0, 6);
 
-        updateTable('north-table', direction1);
-        updateTable('south-table', direction2);
-        document.getElementById('stop-name').textContent = data.stop_name || currentStop;
+        updateTable("north-table", direction1);
+        updateTable("south-table", direction2);
+        document.getElementById("stop-name").textContent = data.stop_name || currentStop;
 
         const now = new Date();
-        const hh = now.getHours().toString().padStart(2, '0');
-        const mm = now.getMinutes().toString().padStart(2, '0');
-        const ss = now.getSeconds().toString().padStart(2, '0');
-        document.getElementById('updated-time').textContent = `${hh}:${mm}:${ss}`;
+        const hh = now.getHours().toString().padStart(2, "0");
+        const mm = now.getMinutes().toString().padStart(2, "0");
+        const ss = now.getSeconds().toString().padStart(2, "0");
+        document.getElementById("updated-time").textContent = `${hh}:${mm}:${ss}`;
 
         countdown = 30;
       } catch (err) {
-        console.error('Fel vid hämtning av avgångar:', err);
+        console.error("Fel vid hämtning av avgångar:", err);
       }
     }
 
@@ -262,33 +276,107 @@
         if (countdown <= 0) {
           fetchDepartures();
         }
-        document.getElementById('countdown').textContent = countdown;
+        document.getElementById("countdown").textContent = countdown;
       }, 1000);
     }
 
     function updateTable(tableId, departures) {
-      const tbody = document.getElementById(tableId).querySelector('tbody');
-      tbody.innerHTML = '';
+      const tbody = document.getElementById(tableId).querySelector("tbody");
+      tbody.innerHTML = "";
+
       if (!departures.length) {
         tbody.innerHTML = '<tr><td colspan="3">Inga avgångar</td></tr>';
         return;
       }
-      for (const dep of departures) {
+
+      departures.forEach((dep) => {
         const { backgroundColor, textColor } = getLineColors(dep.line.designation);
-        const row = document.createElement('tr');
+        const cancelled = dep.state === "CANCELLED";
+        const destinationText = cancelled ? `⚠️ ${dep.destination} (inställd)` : dep.destination;
+
+        // Calculate delay difference in minutes
+        const scheduledTime = new Date(dep.scheduled);
+        const expectedTime = new Date(dep.expected);
+        const diffMs = expectedTime - scheduledTime;
+        const diffMin = Math.round(diffMs / 60000);
+        const delayText =
+          diffMin !== 0
+            ? `<span style="font-size:0.75rem; color: yellow; margin-right:4px;">${diffMin > 0 ? "+" : ""}${diffMin}</span>`
+            : "";
+
+        // Format date and time in 24-hour format with date
+        const optionsDateTime = {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        };
+        const scheduledStr = scheduledTime.toLocaleString(undefined, optionsDateTime);
+        const expectedStr = expectedTime.toLocaleString(undefined, optionsDateTime);
+
+        // Main departure row
+        const row = document.createElement("tr");
+        row.style.cursor = "pointer";
         row.innerHTML = `
-          <td><span class="line" style="background:${backgroundColor};color:${textColor};">${dep.line.designation.padStart(3, ' ')}</span></td>
-          <td>${dep.destination}</td>
-          <td class="time">${dep.display}</td>
+          <td><span class="line" style="background:${backgroundColor};color:${textColor};">${dep.line.designation.padStart(
+          3,
+          " "
+        )}</span></td>
+          <td>${destinationText}</td>
+          <td class="time">${delayText}${dep.display}</td>
         `;
+
+        // Details row hidden by default
+        const detailsRow = document.createElement("tr");
+        detailsRow.style.display = "none";
+        detailsRow.innerHTML = `
+          <td colspan="3" style="background:#222; font-size:1rem; text-align:left; padding:0.5rem 1rem; color:#eee;">
+            <div><strong>Status:</strong> ${dep.state}</div>
+            <div><strong>Scheduled:</strong> ${scheduledStr}</div>
+            <div><strong>Expected:</strong> ${expectedStr}</div>
+          </td>
+        `;
+
+        // Toggle details row on click and reset refresh timer
+        row.addEventListener("click", () => {
+          detailsRow.style.display = detailsRow.style.display === "none" ? "table-row" : "none";
+          if (typeof resetRefreshTimer === "function") {
+            resetRefreshTimer();
+          }
+        });
+
         tbody.appendChild(row);
-      }
+        tbody.appendChild(detailsRow);
+      });
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+    // Battery Status API integration
+    function updateBatteryStatus() {
+      if (!navigator.getBattery) {
+        document.getElementById("battery-status").textContent = "N/A";
+        return;
+      }
+
+      navigator.getBattery().then((battery) => {
+        function updateAll() {
+          const level = Math.round(battery.level * 100);
+          document.getElementById("battery-status").textContent = level + "%";
+        }
+
+        updateAll();
+
+        battery.addEventListener("levelchange", updateAll);
+        battery.addEventListener("chargingchange", updateAll);
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
       renderStopSelector();
       fetchDepartures();
       startCountdown();
+      updateBatteryStatus();
     });
   </script>
 </body>
