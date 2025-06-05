@@ -20,10 +20,22 @@
       height: 100vh;
     }
 
-    #stop-name {
-      text-align: center;
-      font-size: 2.5rem;
+    #header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       padding: 1rem;
+      background: #222;
+      font-size: 1.6rem;
+    }
+
+    #stop-name {
+      font-size: 2.5rem;
+    }
+
+    #last-updated {
+      cursor: pointer;
+      color: #aaa;
     }
 
     .tables-container {
@@ -105,16 +117,32 @@
       font-size: 1.6rem;
     }
 
-    .stop-selector button.active {
-      background: #007bff;
+    .stop-selector button.active[data-id="1353"] {
+      background: #d61d23;
+    }
+
+    .stop-selector button.active[data-id="9190"] {
+      background: #169d4c;
+    }
+
+    .stop-selector button.active[data-id="9530"] {
+      background: #d05d9a;
+    }
+
+    .stop-selector button.active[data-id="1351"] {
+      background: #d61d23;
     }
   </style>
 </head>
 <body>
-  <div id="stop-name">Laddar...</div>
+  <div id="header">
+    <div id="stop-name">Laddar...</div>
+    <div id="last-updated" onclick="manualRefresh()">Senast uppdaterad: <span id="updated-time">-</span> (<span id="countdown">30</span>s)</div>
+  </div>
+
   <div class="tables-container">
     <div class="direction-container">
-      <h2>Norrgående (1)</h2>
+      <h2>Norrgående</h2>
       <div class="table-wrapper">
         <table id="north-table">
           <thead><tr><th>Linje</th><th>Destination</th><th class="time">Tid</th></tr></thead>
@@ -123,7 +151,7 @@
       </div>
     </div>
     <div class="direction-container">
-      <h2>Södergående (2)</h2>
+      <h2>Södergående</h2>
       <div class="table-wrapper">
         <table id="south-table">
           <thead><tr><th>Linje</th><th>Destination</th><th class="time">Tid</th></tr></thead>
@@ -132,10 +160,15 @@
       </div>
     </div>
   </div>
+
   <div class="stop-selector" id="stop-selector"></div>
+
   <script>
     let currentSiteId = 1353;
     let currentStop = "Grindsgatan";
+    let countdown = 30;
+    let countdownInterval;
+
     const knownStops = {
       "Grindsgatan": 1353,
       "Skanstull": 9190,
@@ -199,14 +232,38 @@
         const res = await fetch(`https://transport.integration.sl.se/v1/sites/${currentSiteId}/departures`);
         const data = await res.json();
         const filtered = filterDepartures(data.departures);
-        const north = filtered.filter(dep => dep.direction_code === 1).slice(0, 6);
-        const south = filtered.filter(dep => dep.direction_code === 2).slice(0, 6);
-        updateTable('north-table', north);
-        updateTable('south-table', south);
+
+        const direction1 = filtered.filter(dep => dep.direction_code === 1).slice(0, 6);
+        const direction2 = filtered.filter(dep => dep.direction_code === 2).slice(0, 6);
+
+        updateTable('north-table', direction1);
+        updateTable('south-table', direction2);
         document.getElementById('stop-name').textContent = data.stop_name || currentStop;
+
+        const now = new Date();
+        const hh = now.getHours().toString().padStart(2, '0');
+        const mm = now.getMinutes().toString().padStart(2, '0');
+        const ss = now.getSeconds().toString().padStart(2, '0');
+        document.getElementById('updated-time').textContent = `${hh}:${mm}:${ss}`;
+
+        countdown = 30;
       } catch (err) {
         console.error('Fel vid hämtning av avgångar:', err);
       }
+    }
+
+    function manualRefresh() {
+      fetchDepartures();
+    }
+
+    function startCountdown() {
+      countdownInterval = setInterval(() => {
+        countdown--;
+        if (countdown <= 0) {
+          fetchDepartures();
+        }
+        document.getElementById('countdown').textContent = countdown;
+      }, 1000);
     }
 
     function updateTable(tableId, departures) {
@@ -231,7 +288,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       renderStopSelector();
       fetchDepartures();
-      setInterval(fetchDepartures, 30000);
+      startCountdown();
     });
   </script>
 </body>
