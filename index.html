@@ -143,6 +143,37 @@
     .stop-selector button.active[data-id='1351'] {
       background: #d61d23;
     }
+
+    @media (max-width: 960px) {
+  .tables-container {
+    flex-direction: column;
+  }
+
+  .direction-container {
+    width: 100%;
+  }
+
+  .table-wrapper {
+    max-height: 50vh;
+  }
+
+  h2 {
+    font-size: 1.8rem;
+  }
+
+  th, td {
+    font-size: 1.4rem;
+    padding: 0.5rem;
+  }
+
+  #header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}
+
+
   </style>
 </head>
 <body>
@@ -283,7 +314,6 @@
 function updateTable(tableId, departures) {
   const tbody = document.getElementById(tableId).querySelector('tbody');
   tbody.innerHTML = '';
-
   if (!departures.length) {
     tbody.innerHTML = '<tr><td colspan="3">Inga avgångar</td></tr>';
     return;
@@ -292,29 +322,33 @@ function updateTable(tableId, departures) {
   departures.forEach((dep) => {
     const { backgroundColor, textColor } = getLineColors(dep.line.designation);
     const cancelled = dep.state === "CANCELLED";
-
-    // Prepare destination text with warning if cancelled
     const destinationText = cancelled ? `${dep.destination} ⚠️` : dep.destination;
 
-    // Calculate delay difference in minutes
     const scheduledTime = new Date(dep.scheduled);
     const expectedTime = new Date(dep.expected);
-    const diffMs = expectedTime - scheduledTime;
-    const diffMin = Math.round(diffMs / 60000);
-    const delayText = diffMin !== 0 ? `<span style="font-size:0.75rem; color: yellow; margin-right:4px;">${diffMin > 0 ? '+' : ''}${diffMin}</span>` : '';
+    const diffMin = Math.round((expectedTime - scheduledTime) / 60000);
+    const delayText = diffMin !== 0
+      ? `<span style="font-size:0.75rem; color: yellow; margin-right:4px;">${diffMin > 0 ? '+' : ''}${diffMin}</span>`
+      : '';
 
-    // Style only the actual time if cancelled (red and strikethrough)
     const timeStyle = cancelled ? 'color: red; text-decoration: line-through;' : '';
+    const cancelledText = cancelled
+      ? `<span style="color: red; font-weight: bold; margin-right: 4px;">Inställd</span>`
+      : '';
 
-    // Inställd text to the left if cancelled
-    const cancelledText = cancelled ? `<span style="color: red; font-size: 14px; margin: 0 4px 8px 0;">Inställd</span>` : '';
+    const options = {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    };
 
-    // Format date and time in 24-hour format with date (for details)
-    const optionsDateTime = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false };
-    const scheduledStr = scheduledTime.toLocaleString(undefined, optionsDateTime);
-    const expectedStr = expectedTime.toLocaleString(undefined, optionsDateTime);
+    const scheduledStr = scheduledTime.toLocaleString(undefined, options);
+    const expectedStr = expectedTime.toLocaleString(undefined, options);
 
-    // Main departure row
     const row = document.createElement('tr');
     row.style.cursor = 'pointer';
     row.innerHTML = `
@@ -323,7 +357,6 @@ function updateTable(tableId, departures) {
       <td class="time">${cancelledText}${delayText}<span style="${timeStyle}">${dep.display}</span></td>
     `;
 
-    // Details row hidden by default
     const detailsRow = document.createElement('tr');
     detailsRow.style.display = 'none';
     detailsRow.innerHTML = `
@@ -334,7 +367,6 @@ function updateTable(tableId, departures) {
       </td>
     `;
 
-    // Toggle details row on click and reset refresh timer if available
     row.addEventListener('click', () => {
       detailsRow.style.display = detailsRow.style.display === 'none' ? 'table-row' : 'none';
       if (typeof resetRefreshTimer === 'function') {
@@ -346,6 +378,8 @@ function updateTable(tableId, departures) {
     tbody.appendChild(detailsRow);
   });
 }
+
+
 
 
 
