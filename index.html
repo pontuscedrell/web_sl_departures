@@ -387,25 +387,6 @@ function updateTable(departures) {
             refreshInterval = setInterval(fetchDepartures, 30000);
         }
 
-        // Function to flush screen colors
-function flushScreen() {
-    document.body.style.backgroundColor = "red"; // Change to a solid color (e.g., red)
-    setTimeout(() => {
-        document.body.style.backgroundColor = originalBackgroundColor; // Revert back to original color
-    }, 100); // Change back after 100 milliseconds (adjust the timing if needed)
-}
-
-// Function to calculate the time remaining until the next full hour
-function timeUntilNextHour() {
-    const now = new Date();
-    return (60 - now.getMinutes()) * 60 * 1000 - now.getSeconds() * 1000; // Time in ms until the next full hour
-}
-
-// Set a timeout to run exactly on the hour
-setTimeout(() => {
-    flushScreen(); // Run the flush screen immediately at the start of the next hour
-    setInterval(flushScreen, 3600000); // Then repeat it every hour
-}, timeUntilNextHour()); // Set the timeout based on the time remaining until the next hour
     </script>
 </body>
 </html>
