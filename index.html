@@ -3,22 +3,90 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SL Avgångar (North & South)</title>
+  <title>SL Avgångar</title>
   <style>
+    * {
+      box-sizing: border-box;
+    }
     body {
       font-family: sans-serif;
       background: #111;
       color: white;
+      margin: 0;
+      padding: 0;
+      font-size: 2.5rem;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      padding: 2rem;
+      height: 100vh;
+    }
+
+    #stop-name {
+      text-align: center;
+      font-size: 3rem;
+      padding: 1rem;
+    }
+
+    .tables-container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .direction-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    h2 {
+      text-align: center;
+      font-size: 2.5rem;
+      margin: 1rem 0;
+    }
+
+    .table-wrapper {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 1rem;
+      border-bottom: 2px solid #555;
+    }
+
+    th {
+      text-transform: uppercase;
+      color: #bbb;
       font-size: 2rem;
     }
 
+    .time {
+      text-align: right;
+    }
+
+    .line {
+      font-weight: bold;
+      color: #fff;
+      padding: 0.5rem;
+      border-radius: 0.5rem;
+      display: inline-block;
+      text-align: center;
+      width: 3ch;
+      min-width: 3ch;
+    }
+
     .stop-selector {
-      margin-bottom: 2rem;
-      font-size: 2rem;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      padding: 1rem;
+      background: #222;
     }
 
     .stop-selector button {
@@ -35,89 +103,33 @@
     .stop-selector button.active {
       background: #007bff;
     }
-
-    .tables-container {
-      display: flex;
-      justify-content: space-between;
-      width: 100%;
-      max-width: 1800px;
-      gap: 4rem;
-    }
-
-    table {
-      width: 100%;
-      max-width: 800px;
-      border-collapse: collapse;
-      font-size: 2rem;
-    }
-
-    th, td {
-      padding: 1rem;
-      border-bottom: 2px solid #555;
-      text-align: left;
-    }
-
-    th {
-      text-transform: uppercase;
-      color: #bbb;
-    }
-
-    .time {
-      text-align: right;
-    }
-
-    h2 {
-      text-align: center;
-      margin-bottom: 1rem;
-      font-size: 2.5rem;
-    }
-
-    #stop-name {
-      font-size: 3rem;
-      margin-bottom: 1rem;
-    }
-
-    .direction-container {
-      flex: 1;
-    }
-
-    .line {
-      font-weight: bold;
-      color: #fff;
-      padding: 0.5rem 1rem;
-      border-radius: 0.5rem;
-      display: inline-block;
-      text-align: center;
-      width: 3.5ch;
-    }
   </style>
 </head>
 <body>
-  <h1 id="stop-name">Laddar...</h1>
-
-  <div class="stop-selector" id="stop-selector"></div>
+  <div id="stop-name">Laddar...</div>
 
   <div class="tables-container">
     <div class="direction-container">
       <h2>Norrgående (1)</h2>
-      <table id="north-table">
-        <thead>
-          <tr><th>Linje</th><th>Destination</th><th class="time">Tid</th></tr>
-        </thead>
-        <tbody><tr><td colspan="3">Laddar...</td></tr></tbody>
-      </table>
+      <div class="table-wrapper">
+        <table id="north-table">
+          <thead><tr><th>Linje</th><th>Destination</th><th class="time">Tid</th></tr></thead>
+          <tbody><tr><td colspan="3">Laddar...</td></tr></tbody>
+        </table>
+      </div>
     </div>
-
     <div class="direction-container">
       <h2>Södergående (2)</h2>
-      <table id="south-table">
-        <thead>
-          <tr><th>Linje</th><th>Destination</th><th class="time">Tid</th></tr>
-        </thead>
-        <tbody><tr><td colspan="3">Laddar...</td></tr></tbody>
-      </table>
+      <div class="table-wrapper">
+        <table id="south-table">
+          <thead><tr><th>Linje</th><th>Destination</th><th class="time">Tid</th></tr></thead>
+          <tbody><tr><td colspan="3">Laddar...</td></tr></tbody>
+        </table>
+      </div>
     </div>
   </div>
+
+  <div class="stop-selector" id="stop-selector"></div>
 
   <script>
     let currentSiteId = 1353;
@@ -159,15 +171,10 @@
       let backgroundColor = '#555';
       let textColor = 'white';
 
-      if (["17", "18", "19"].includes(designation)) {
-        backgroundColor = '#169d4c';
-      } else if (["1", "2", "3", "4"].includes(designation)) {
-        backgroundColor = '#008aca';
-      } else if (["57", "74", "154", "164"].includes(designation)) {
-        backgroundColor = '#d61d23';
-      } else if (["40", "41", "42", "43", "44"].includes(designation)) {
-        backgroundColor = '#d05d9a';
-      }
+      if (["17", "18", "19"].includes(designation)) backgroundColor = '#169d4c';
+      else if (["1", "2", "3", "4"].includes(designation)) backgroundColor = '#008aca';
+      else if (["57", "74", "154", "164"].includes(designation)) backgroundColor = '#d61d23';
+      else if (["40", "41", "42", "43", "44"].includes(designation)) backgroundColor = '#d05d9a';
 
       return { backgroundColor, textColor };
     }
@@ -189,7 +196,7 @@
       try {
         const res = await fetch(`https://transport.integration.sl.se/v1/sites/${currentSiteId}/departures`);
         const data = await res.json();
-        let filtered = filterDepartures(data.departures);
+        const filtered = filterDepartures(data.departures);
         const north = filtered.filter(dep => dep.direction_code === 1).slice(0, 6);
         const south = filtered.filter(dep => dep.direction_code === 2).slice(0, 6);
         updateTable('north-table', north);
