@@ -280,77 +280,76 @@
       }, 1000);
     }
 
-    function updateTable(tableId, departures) {
-      const tbody = document.getElementById(tableId).querySelector("tbody");
-      tbody.innerHTML = "";
+function updateTable(tableId, departures) {
+  const tbody = document.getElementById(tableId).querySelector('tbody');
+  tbody.innerHTML = '';
 
-      if (!departures.length) {
-        tbody.innerHTML = '<tr><td colspan="3">Inga avgångar</td></tr>';
-        return;
+  if (!departures.length) {
+    tbody.innerHTML = '<tr><td colspan="3">Inga avgångar</td></tr>';
+    return;
+  }
+
+  departures.forEach((dep) => {
+    const { backgroundColor, textColor } = getLineColors(dep.line.designation);
+    const cancelled = dep.state === "CANCELLED";
+
+    // Prepare destination text with warning if cancelled
+    const destinationText = cancelled ? `${dep.destination} ⚠️` : dep.destination;
+
+    // Calculate delay difference in minutes
+    const scheduledTime = new Date(dep.scheduled);
+    const expectedTime = new Date(dep.expected);
+    const diffMs = expectedTime - scheduledTime;
+    const diffMin = Math.round(diffMs / 60000);
+    const delayText = diffMin !== 0 ? `<span style="font-size:0.75rem; color: yellow; margin-right:4px;">${diffMin > 0 ? '+' : ''}${diffMin}</span>` : '';
+
+    // Style only the actual time if cancelled (red and strikethrough)
+    const timeStyle = cancelled ? 'color: red; text-decoration: line-through;' : '';
+
+    // Inställd text to the left if cancelled
+    const cancelledText = cancelled ? `<span style="color: red; font-size: 14px; margin: 0 4px 8px 0;">Inställd</span>` : '';
+
+    // Format date and time in 24-hour format with date (for details)
+    const optionsDateTime = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false };
+    const scheduledStr = scheduledTime.toLocaleString(undefined, optionsDateTime);
+    const expectedStr = expectedTime.toLocaleString(undefined, optionsDateTime);
+
+    // Main departure row
+    const row = document.createElement('tr');
+    row.style.cursor = 'pointer';
+    row.innerHTML = `
+      <td><span class="line" style="background:${backgroundColor};color:${textColor};">${dep.line.designation.padStart(3, ' ')}</span></td>
+      <td>${destinationText}</td>
+      <td class="time">${cancelledText}${delayText}<span style="${timeStyle}">${dep.display}</span></td>
+    `;
+
+    // Details row hidden by default
+    const detailsRow = document.createElement('tr');
+    detailsRow.style.display = 'none';
+    detailsRow.innerHTML = `
+      <td colspan="3" style="background:#222; font-size:1rem; text-align:left; padding:0.5rem 1rem; color:#eee;">
+        <div><strong>Status:</strong> ${dep.state}</div>
+        <div><strong>Scheduled:</strong> ${scheduledStr}</div>
+        <div><strong>Expected:</strong> ${expectedStr}</div>
+      </td>
+    `;
+
+    // Toggle details row on click and reset refresh timer if available
+    row.addEventListener('click', () => {
+      detailsRow.style.display = detailsRow.style.display === 'none' ? 'table-row' : 'none';
+      if (typeof resetRefreshTimer === 'function') {
+        resetRefreshTimer();
       }
+    });
 
-      departures.forEach((dep) => {
-        const { backgroundColor, textColor } = getLineColors(dep.line.designation);
-        const cancelled = dep.state === "CANCELLED";
-        const destinationText = cancelled ? `⚠️ ${dep.destination} (inställd)` : dep.destination;
+    tbody.appendChild(row);
+    tbody.appendChild(detailsRow);
+  });
+}
 
-        // Calculate delay difference in minutes
-        const scheduledTime = new Date(dep.scheduled);
-        const expectedTime = new Date(dep.expected);
-        const diffMs = expectedTime - scheduledTime;
-        const diffMin = Math.round(diffMs / 60000);
-        const delayText =
-          diffMin !== 0
-            ? `<span style="font-size:0.75rem; color: yellow; margin-right:4px;">${diffMin > 0 ? "+" : ""}${diffMin}</span>`
-            : "";
 
-        // Format date and time in 24-hour format with date
-        const optionsDateTime = {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        };
-        const scheduledStr = scheduledTime.toLocaleString(undefined, optionsDateTime);
-        const expectedStr = expectedTime.toLocaleString(undefined, optionsDateTime);
 
-        // Main departure row
-        const row = document.createElement("tr");
-        row.style.cursor = "pointer";
-        row.innerHTML = `
-          <td><span class="line" style="background:${backgroundColor};color:${textColor};">${dep.line.designation.padStart(
-          3,
-          " "
-        )}</span></td>
-          <td>${destinationText}</td>
-          <td class="time">${delayText}${dep.display}</td>
-        `;
 
-        // Details row hidden by default
-        const detailsRow = document.createElement("tr");
-        detailsRow.style.display = "none";
-        detailsRow.innerHTML = `
-          <td colspan="3" style="background:#222; font-size:1rem; text-align:left; padding:0.5rem 1rem; color:#eee;">
-            <div><strong>Status:</strong> ${dep.state}</div>
-            <div><strong>Scheduled:</strong> ${scheduledStr}</div>
-            <div><strong>Expected:</strong> ${expectedStr}</div>
-          </td>
-        `;
-
-        // Toggle details row on click and reset refresh timer
-        row.addEventListener("click", () => {
-          detailsRow.style.display = detailsRow.style.display === "none" ? "table-row" : "none";
-          if (typeof resetRefreshTimer === "function") {
-            resetRefreshTimer();
-          }
-        });
-
-        tbody.appendChild(row);
-        tbody.appendChild(detailsRow);
-      });
-    }
 
     // Battery Status API integration
     function updateBatteryStatus() {
