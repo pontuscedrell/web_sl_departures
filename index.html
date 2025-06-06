@@ -105,8 +105,8 @@
       border-radius: 0.5rem;
       display: inline-block;
       text-align: center;
-      width: 3ch;
-      min-width: 3ch;
+      width: 4ch;
+      min-width: 4ch;
     }
 
     .stop-selector {
@@ -144,19 +144,21 @@
       background: #d61d23;
     }
 
-@media (max-width: 968px) {
-  
-  .stop-selector button {
-    font-size: 1.4rem;
-  }
+    tr.clickable-row:hover {
+      background-color: #222;
+    }
 
-  .tables-container {
-    flex-direction: column;
-  }
-}
-
-
-
+    @media (max-width: 968px) {
+      .stop-selector button {
+        font-size: 1.4rem;
+      }
+      .tables-container {
+        flex-direction: column;
+      }
+      body {
+        font-size: 2.4rem;
+      }
+    }
   </style>
 </head>
 <body>
@@ -256,28 +258,42 @@
     }
 
     async function fetchDepartures() {
-      try {
-        const res = await fetch(`https://transport.integration.sl.se/v1/sites/${currentSiteId}/departures`);
-        const data = await res.json();
-        const filtered = filterDepartures(data.departures);
+try {
+  const res = await fetch(`https://transport.integration.sl.se/v1/sites/${currentSiteId}/departures`);
+  const data = await res.json();
+  const filtered = filterDepartures(data.departures);
 
-        const direction1 = filtered.filter((dep) => dep.direction_code === 1).slice(0, 6);
-        const direction2 = filtered.filter((dep) => dep.direction_code === 2).slice(0, 6);
+  let northDeps, southDeps;
 
-        updateTable("north-table", direction1);
-        updateTable("south-table", direction2);
-        document.getElementById("stop-name").textContent = data.stop_name || currentStop;
+  if (currentStop === "Södra Station") {
+    // At Södra Station, direction 2 is northbound and direction 1 is southbound
+    northDeps = filtered.filter((dep) => dep.direction_code === 2).slice(0, 6);
+    southDeps = filtered.filter((dep) => dep.direction_code === 1).slice(0, 6);
+  } else if (currentStop === "Rosenlund") {
+    // At Rosenlund, use stop_point.id to separate north and south
+    northDeps = filtered.filter((dep) => dep.stop_point?.id === 10139).slice(0, 6);
+    southDeps = filtered.filter((dep) => dep.stop_point?.id === 10136).slice(0, 6);
+  } else {
+    // Default: direction_code 1 = north, 2 = south
+    northDeps = filtered.filter((dep) => dep.direction_code === 1).slice(0, 6);
+    southDeps = filtered.filter((dep) => dep.direction_code === 2).slice(0, 6);
+  }
 
-        const now = new Date();
-        const hh = now.getHours().toString().padStart(2, "0");
-        const mm = now.getMinutes().toString().padStart(2, "0");
-        const ss = now.getSeconds().toString().padStart(2, "0");
-        document.getElementById("updated-time").textContent = `${hh}:${mm}:${ss}`;
+  updateTable("north-table", northDeps);
+  updateTable("south-table", southDeps);
+  document.getElementById("stop-name").textContent = data.stop_name || currentStop;
 
-        countdown = 30;
-      } catch (err) {
-        console.error("Fel vid hämtning av avgångar:", err);
-      }
+  const now = new Date();
+  const hh = now.getHours().toString().padStart(2, "0");
+  const mm = now.getMinutes().toString().padStart(2, "0");
+  const ss = now.getSeconds().toString().padStart(2, "0");
+  document.getElementById("updated-time").textContent = `${hh}:${mm}:${ss}`;
+
+  countdown = 30;
+} catch (err) {
+  console.error("Fel vid hämtning av avgångar:", err);
+}
+
     }
 
     function manualRefresh() {
@@ -294,81 +310,76 @@
       }, 1000);
     }
 
-function updateTable(tableId, departures) {
-  const tbody = document.getElementById(tableId).querySelector('tbody');
-  tbody.innerHTML = '';
-  if (!departures.length) {
-    tbody.innerHTML = '<tr><td colspan="3">Inga avgångar</td></tr>';
-    return;
-  }
-
-  departures.forEach((dep) => {
-    const { backgroundColor, textColor } = getLineColors(dep.line.designation);
-    const cancelled = dep.state === "CANCELLED";
-    const destinationText = cancelled ? `${dep.destination} ⚠️` : dep.destination;
-
-    const scheduledTime = new Date(dep.scheduled);
-    const expectedTime = new Date(dep.expected);
-    const diffMin = Math.round((expectedTime - scheduledTime) / 60000);
-    const delayText = diffMin !== 0
-      ? `<span style="font-size:0.75rem; color: yellow; margin-right:4px;">${diffMin > 0 ? '+' : ''}${diffMin}</span>`
-      : '';
-
-    const timeStyle = cancelled ? 'color: red; text-decoration: line-through;' : '';
-    const cancelledText = cancelled
-      ? `<span style="color: red; font-weight: bold; margin-right: 4px;">Inställd</span>`
-      : '';
-
-    const options = {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    };
-
-    const scheduledStr = scheduledTime.toLocaleString(undefined, options);
-    const expectedStr = expectedTime.toLocaleString(undefined, options);
-
-    const row = document.createElement('tr');
-    row.style.cursor = 'pointer';
-    row.innerHTML = `
-      <td><span class="line" style="background:${backgroundColor};color:${textColor};">${dep.line.designation.padStart(3, ' ')}</span></td>
-      <td>${destinationText}</td>
-      <td class="time">${cancelledText}${delayText}<span style="${timeStyle}">${dep.display}</span></td>
-    `;
-
-    const detailsRow = document.createElement('tr');
-    detailsRow.style.display = 'none';
-    detailsRow.innerHTML = `
-      <td colspan="3" style="background:#222; font-size:1rem; text-align:left; padding:0.5rem 1rem; color:#eee;">
-        <div><strong>Status:</strong> ${dep.state}</div>
-        <div><strong>Scheduled:</strong> ${scheduledStr}</div>
-        <div><strong>Expected:</strong> ${expectedStr}</div>
-      </td>
-    `;
-
-    row.addEventListener('click', () => {
-      detailsRow.style.display = detailsRow.style.display === 'none' ? 'table-row' : 'none';
-      if (typeof resetRefreshTimer === 'function') {
-        resetRefreshTimer();
+    function updateTable(tableId, departures) {
+      const tbody = document.getElementById(tableId).querySelector("tbody");
+      tbody.innerHTML = "";
+      if (!departures.length) {
+        tbody.innerHTML = '<tr><td colspan="3">Inga avgångar</td></tr>';
+        return;
       }
-    });
 
-    tbody.appendChild(row);
-    tbody.appendChild(detailsRow);
-  });
-}
+      departures.forEach((dep) => {
+        const { backgroundColor, textColor } = getLineColors(dep.line.designation);
+        const cancelled = dep.state === "CANCELLED";
+        const destinationText = cancelled ? `${dep.destination} ⚠️` : dep.destination;
 
+        const scheduledTime = new Date(dep.scheduled);
+        const expectedTime = new Date(dep.expected);
+        const diffMin = Math.round((expectedTime - scheduledTime) / 60000);
+        const delayText = diffMin !== 0
+          ? `<span style="font-size:0.75rem; color: yellow; margin-right:4px;">${diffMin > 0 ? '+' : ''}${diffMin}</span>`
+          : "";
 
+        const timeStyle = cancelled ? "color: red; text-decoration: line-through;" : "";
+        const cancelledText = cancelled
+          ? `<span style="color: red; font-weight: bold; margin-right: 4px;">Inställd</span>`
+          : "";
 
+        const options = {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false,
+        };
 
+        const scheduledStr = scheduledTime.toLocaleString(undefined, options);
+        const expectedStr = expectedTime.toLocaleString(undefined, options);
 
+        const row = document.createElement("tr");
+        row.style.cursor = "pointer";
+        row.classList.add("clickable-row");
+        row.innerHTML = `
+          <td><span class="line" style="background:${backgroundColor};color:${textColor};">${dep.line.designation.padStart(3, ' ')}</span></td>
+          <td>${destinationText}</td>
+          <td class="time">${cancelledText}${delayText}<span style="${timeStyle}">${dep.display}</span></td>
+        `;
 
+        const detailsRow = document.createElement("tr");
+        detailsRow.style.display = "none";
+        detailsRow.classList.add("details-row");
+        detailsRow.innerHTML = `
+          <td colspan="3" style="background:#222; font-size:1rem; text-align:left; padding:0.5rem 1rem; color:#eee;">
+            <div><strong>Status:</strong> ${dep.state}</div>
+            <div><strong>Scheduled:</strong> ${scheduledStr}</div>
+            <div><strong>Expected:</strong> ${expectedStr}</div>
+          </td>
+        `;
 
-    // Battery Status API integration
+        row.addEventListener("click", () => {
+          detailsRow.style.display = detailsRow.style.display === "none" ? "table-row" : "none";
+          if (typeof resetRefreshTimer === "function") {
+            resetRefreshTimer();
+          }
+        });
+
+        tbody.appendChild(row);
+        tbody.appendChild(detailsRow);
+      });
+    }
+
     function updateBatteryStatus() {
       if (!navigator.getBattery) {
         document.getElementById("battery-status").textContent = "N/A";
