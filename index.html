@@ -267,16 +267,16 @@ try {
 
   if (currentStop === "Södra Station") {
     // At Södra Station, direction 2 is northbound and direction 1 is southbound
-    northDeps = filtered.filter((dep) => dep.direction_code === 2).slice(0, 6);
-    southDeps = filtered.filter((dep) => dep.direction_code === 1).slice(0, 6);
+    northDeps = filtered.filter((dep) => dep.direction_code === 2).slice(0, 10);
+    southDeps = filtered.filter((dep) => dep.direction_code === 1).slice(0, 10);
   } else if (currentStop === "Rosenlund") {
     // At Rosenlund, use stop_point.id to separate north and south
-    northDeps = filtered.filter((dep) => dep.stop_point?.id === 10139).slice(0, 6);
-    southDeps = filtered.filter((dep) => dep.stop_point?.id === 10136).slice(0, 6);
+    northDeps = filtered.filter((dep) => dep.stop_point?.id === 10139).slice(0, 10);
+    southDeps = filtered.filter((dep) => dep.stop_point?.id === 10136).slice(0, 10);
   } else {
     // Default: direction_code 1 = north, 2 = south
-    northDeps = filtered.filter((dep) => dep.direction_code === 1).slice(0, 6);
-    southDeps = filtered.filter((dep) => dep.direction_code === 2).slice(0, 6);
+    northDeps = filtered.filter((dep) => dep.direction_code === 1).slice(0, 10);
+    southDeps = filtered.filter((dep) => dep.direction_code === 2).slice(0, 10);
   }
 
   updateTable("north-table", northDeps);
@@ -326,7 +326,8 @@ try {
         const scheduledTime = new Date(dep.scheduled);
         const expectedTime = new Date(dep.expected);
         const diffMin = Math.round((expectedTime - scheduledTime) / 60000);
-        const delayText = diffMin !== 0
+
+        const delayText = (diffMin > 3 || diffMin < -2)
           ? `<span style="font-size:0.75rem; color: yellow; margin-right:4px;">${diffMin > 0 ? '+' : ''}${diffMin}</span>`
           : "";
 
