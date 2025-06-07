@@ -11,17 +11,14 @@
       --font-color: #fff;
       --font-color-muted: #aaa;
     }
-
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
     body {
       font-family: sans-serif;
       background: var(--main-bg);
       color: var(--font-color);
       margin: 0;
       padding: 0;
-      font-size: 2rem;
+      font-size: 1.2rem;
       display: flex;
       flex-direction: column;
       height: 100vh;
@@ -84,10 +81,31 @@
     .scroll-text { display: inline-block; white-space: nowrap; animation: scroll-left 11s linear infinite; padding-left: 100%; box-sizing: content-box; }
     .destination-cell { max-width: 20vw; width: 60%; overflow: hidden; white-space: nowrap; position: relative; padding: 0 8px; z-index: 0; }
     @keyframes scroll-left { 0% { transform: translateX(0%); } 100% { transform: translateX(-100%); } }
-    @media (max-width: 968px) {
-      .stop-selector button { font-size: 1.4rem; }
+
+    /* Desktop: show button selector, hide dropdown */
+    #stop-selector-dropdown { display: none; }
+    #stop-selector-buttons { display: flex; }
+
+    @media (max-width: 767px) {
+      .stop-selector button { font-size: 1.1rem; }
       .tables-container { flex-direction: column; }
-      body { font-size: 2.4rem; }
+      body { font-size: 1rem; }
+      #stop-selector-dropdown { display: flex; justify-content: center; padding: 1rem; }
+      #stop-selector-buttons { display: none; }
+      #stop-select {
+        font-size: 1.2rem;
+        padding: 0.6rem 1.2rem;
+        border-radius: 0.5rem;
+        border: 1px solid #333;
+        background: #222;
+        color: #fff;
+        width: 95%; 
+        max-width: 500px;
+        margin: 0 auto;
+        box-sizing: border-box;
+      }
+      h2 { font-size: 1.2rem; }
+      th, td { font-size: 1rem; }
     }
   </style>
 </head>
@@ -113,16 +131,21 @@
       </div>
     </div>
   </div>
-  <div class="stop-selector" id="stop-selector"></div>
+  <div class="stop-selector" id="stop-selector-buttons"></div>
+  <div class="stop-selector" id="stop-selector-dropdown">
+    <select id="stop-select"></select>
+  </div>
   <script>
     let currentSiteId = 1353;
     let currentStop = "Grindsgatan";
     let countdown = 30;
     let countdownInterval;
     const knownStops = { Grindsgatan: 1353, Skanstull: 9190, "Södra Station": 9530, Rosenlund: 1351 };
+
     function renderStopSelector() {
-      const container = document.getElementById("stop-selector");
-      container.innerHTML = "";
+      // Button selector (desktop)
+      const btnContainer = document.getElementById("stop-selector-buttons");
+      btnContainer.innerHTML = "";
       Object.entries(knownStops).forEach(([stopName, stopId]) => {
         const btn = document.createElement("button");
         btn.textContent = stopName;
@@ -132,17 +155,46 @@
           fetchDepartures();
           updateActiveStopButton();
           document.querySelectorAll(".table-wrapper").forEach((w) => (w.scrollTop = 0));
+          // Sync dropdown on selection
+          const sel = document.getElementById("stop-select");
+          if (sel) sel.value = stopId;
         };
         btn.dataset.id = stopId;
-        container.appendChild(btn);
+        btnContainer.appendChild(btn);
       });
+
+      // Dropdown selector (mobile)
+      const select = document.getElementById("stop-select");
+      select.innerHTML = "";
+      Object.entries(knownStops).forEach(([stopName, stopId]) => {
+        const opt = document.createElement("option");
+        opt.value = stopId;
+        opt.textContent = stopName;
+        if (stopId === currentSiteId) opt.selected = true;
+        select.appendChild(opt);
+      });
+      select.onchange = function() {
+        const stopId = parseInt(this.value, 10);
+        const stopName = Object.keys(knownStops).find(key => knownStops[key] === stopId);
+        currentSiteId = stopId;
+        currentStop = stopName;
+        fetchDepartures();
+        updateActiveStopButton();
+        document.querySelectorAll(".table-wrapper").forEach((w) => (w.scrollTop = 0));
+      };
+
       updateActiveStopButton();
     }
+
     function updateActiveStopButton() {
-      document.querySelectorAll(".stop-selector button").forEach((btn) => {
+      document.querySelectorAll("#stop-selector-buttons button").forEach((btn) => {
         btn.classList.toggle("active", parseInt(btn.dataset.id) === currentSiteId);
       });
+      // Sync dropdown value
+      const select = document.getElementById("stop-select");
+      if (select) select.value = currentSiteId;
     }
+
     function getLineColors(designation) {
       let backgroundColor = "#555";
       let textColor = "white";
@@ -152,6 +204,7 @@
       else if (["40", "41", "42", "43", "44"].includes(designation)) backgroundColor = "#d05d9a";
       return { backgroundColor, textColor };
     }
+
     function filterDepartures(departures) {
       if (currentStop === "Skanstull") return departures.filter(dep => dep.line.transport_mode === "METRO");
       if (currentStop === "Grindsgatan") return departures.filter(dep => dep.line.transport_mode === "BUS");
@@ -159,6 +212,7 @@
       if (currentStop === "Rosenlund") return departures.filter(dep => dep.line.transport_mode === "BUS");
       return departures;
     }
+
     async function fetchDepartures() {
       try {
         const res = await fetch(`https://transport.integration.sl.se/v1/sites/${currentSiteId}/departures`);
@@ -191,10 +245,12 @@
         console.error("Fel vid hämtning av avgångar:", err);
       }
     }
+
     function manualRefresh() {
       fetchDepartures();
       countdown = 30;
     }
+
     function startCountdown() {
       countdownInterval = setInterval(() => {
         countdown--;
@@ -202,6 +258,7 @@
         document.getElementById("countdown").textContent = countdown;
       }, 1000);
     }
+
     function updateTable(tableId, departures) {
       const tbody = document.getElementById(tableId).querySelector("tbody");
       tbody.innerHTML = "";
@@ -239,12 +296,13 @@
         const destinationEl = document.createElement("span");
         destinationEl.textContent = dep.destination;
         destTd.appendChild(destinationEl);
+        // Skip deviation message if only "inställd"
         const deviationText = (dep.deviations && dep.deviations.length)
-        ? dep.deviations
-            .map(dev => dev.message)
-            .filter(msg => msg && msg.trim().toLowerCase() !== "inställd")
-            .join(" | ")
-        : null;
+          ? dep.deviations
+              .map(dev => dev.message)
+              .filter(msg => msg && msg.trim().toLowerCase() !== "inställd")
+              .join(" | ")
+          : null;
         if (deviationText) {
           const scrollContainer = document.createElement("span");
           scrollContainer.className = "scroll-container";
@@ -282,6 +340,7 @@
         tbody.appendChild(detailsRow);
       });
     }
+
     function updateBatteryStatus() {
       if (!navigator.getBattery) {
         document.getElementById("battery-status").textContent = "N/A";
