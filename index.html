@@ -11,7 +11,9 @@
       --font-color: #fff;
       --font-color-muted: #aaa;
     }
-    * { box-sizing: border-box; }
+    * { 
+      box-sizing: border-box;
+    }
     body {
       font-family: sans-serif;
       background: var(--main-bg);
@@ -23,6 +25,7 @@
       flex-direction: column;
       height: 100vh;
     }
+
     #header {
       display: flex;
       justify-content: space-between;
@@ -31,7 +34,12 @@
       background: var(--header-bg);
       font-size: 1.6rem;
     }
-    #stop-name { font-size: 2.5rem; }
+
+    #stop-name { 
+      font-size: 2.5rem; 
+      min-width: 80%;
+    }
+
     #last-updated {
       cursor: pointer;
       color: var(--font-color-muted);
@@ -65,9 +73,14 @@
       font-size: 1.6rem;
       text-align: center;
     }
+
+    .time {
+      text-align: right; 
+    }
+
     th { text-transform: uppercase; color: #bbb; position: sticky; top: 0; background: var(--main-bg); z-index: 1; }
     td:nth-child(2) { text-align: left; }
-    .line { font-weight: bold; color: #fff; padding: 0.4rem; border-radius: 0.5rem; display: inline-block; text-align: center; width: 4ch; min-width: 4ch; }
+    .line { font-weight: bold; color: #fff; padding: 0.4rem; border-radius: 0.5rem; display: inline-block; width: 4ch; min-width: 4ch; }
     .line-wrapper { position: relative; display: inline-block; }
     .warning-icon { position: absolute; top: -0.4rem; right: -0.4rem; font-size: 0.8rem; color: yellow; pointer-events: none; }
     .stop-selector { display: flex; flex-wrap: wrap; justify-content: center; padding: 1rem; background: var(--header-bg); }
@@ -89,7 +102,7 @@
     @media (max-width: 767px) {
       .stop-selector button { font-size: 1.1rem; }
       .tables-container { flex-direction: column; }
-      body { font-size: 1rem; }
+      
       #stop-selector-dropdown { display: flex; justify-content: center; padding: 1rem; }
       #stop-selector-buttons { display: none; }
       #stop-select {
@@ -105,8 +118,24 @@
         box-sizing: border-box;
       }
       h2 { font-size: 1.2rem; }
-      th, td { font-size: 1rem; }
-    }
+      th, td { 
+        font-size: 1rem; 
+        padding: 0.5rem 0.5rem;
+      }
+
+      #header {
+        font-size: 0.5rem; 
+        padding: 0.5rem;
+      }
+
+      #battery-status {
+        font-size: 0.5rem; !important
+      }
+
+      .direction-container > h2 {
+        margin: 0;
+      }
+    
   </style>
 </head>
 <body>
@@ -114,7 +143,7 @@
     <div id="stop-name">Laddar...</div>
     <div id="last-updated" onclick="manualRefresh()">
       Senast uppdaterad: <span id="updated-time">-</span> (<span id="countdown">30</span>s)
-      <span id="battery-status" style="margin-left: 1rem; font-size: 1.4rem; color: #aaa;">--%</span>
+      <span id="battery-status" style="margin-left: 1rem; color: #aaa;">--%</span>
     </div>
   </div>
   <div class="tables-container">
