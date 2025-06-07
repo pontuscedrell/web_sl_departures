@@ -175,14 +175,14 @@
 .scroll-text {
   display: inline-block;
   white-space: nowrap;
-  animation: scroll-left 10s linear infinite;
+  animation: scroll-left 11s linear infinite;
   padding-left: 100%; /* starts outside and scrolls in */
   box-sizing: content-box;
 }
 
 .destination-cell {
   max-width: 20vw;
-  width: 70%;
+  width: 60%;
   overflow: hidden;
   white-space: nowrap;
   position: relative;
@@ -440,7 +440,7 @@ function updateTable(tableId, departures) {
           destTd.appendChild(scrollContainer);
         }
         showingDeviation = !showingDeviation;
-      }, 10000);
+      }, 11000);
     }
 
     const detailsRow = document.createElement("tr");
