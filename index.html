@@ -83,6 +83,7 @@
       position: sticky;
       top: 0;
       background: #111;
+      z-index: 1;
     }
 
     th:first-child,
@@ -107,6 +108,20 @@
       text-align: center;
       width: 4ch;
       min-width: 4ch;
+    }
+
+    .line-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+
+    .warning-icon {
+      position: absolute;
+      top: -0.4rem;
+      right: -0.4rem;
+      font-size: 0.8rem;
+      color: yellow;
+      pointer-events: none;
     }
 
     .stop-selector {
@@ -148,6 +163,42 @@
       background-color: #222;
     }
 
+.scroll-container {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  max-width: 100%; /* match the column width */
+  white-space: nowrap;
+  margin-left: 0;
+}
+
+.scroll-text {
+  display: inline-block;
+  white-space: nowrap;
+  animation: scroll-left 10s linear infinite;
+  padding-left: 100%; /* starts outside and scrolls in */
+  box-sizing: content-box;
+}
+
+.destination-cell {
+  max-width: 20vw;
+  width: 70%;
+  overflow: hidden;
+  white-space: nowrap;
+  position: relative;
+  padding: 0 8px;
+  z-index: 0;
+}
+
+@keyframes scroll-left {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
     @media (max-width: 968px) {
       .stop-selector button {
         font-size: 1.4rem;
@@ -172,7 +223,7 @@
 
   <div class="tables-container">
     <div class="direction-container">
-      <h2>Norrgående</h2>
+      <h2 id="northBound">Norrgående</h2>
       <div class="table-wrapper">
         <table id="north-table">
           <thead><tr><th>Linje</th><th>Destination</th><th class="time">Tid</th></tr></thead>
@@ -181,10 +232,10 @@
       </div>
     </div>
     <div class="direction-container">
-      <h2>Södergående</h2>
+      <h2 id="southBound">Södergående</h2>
       <div class="table-wrapper">
         <table id="south-table">
-          <thead><tr><th>Linje</th><th>Destination</th><th class="time">Tid</th></tr></thead>
+          <thead><tr><th>Linje</th><th class="dest1">Destination</th><th class="time">Tid</th></tr></thead>
           <tbody><tr><td colspan="3">Laddar...</td></tr></tbody>
         </table>
       </div>
@@ -264,19 +315,26 @@ try {
   const filtered = filterDepartures(data.departures);
 
   let northDeps, southDeps;
+  let h2North, h2South;
 
   if (currentStop === "Södra Station") {
     // At Södra Station, direction 2 is northbound and direction 1 is southbound
     northDeps = filtered.filter((dep) => dep.direction_code === 2).slice(0, 10);
     southDeps = filtered.filter((dep) => dep.direction_code === 1).slice(0, 10);
+    document.getElementById('northBound').textContent = 'Norrgående';
+    document.getElementById('southBound').textContent = 'Södergående';
   } else if (currentStop === "Rosenlund") {
     // At Rosenlund, use stop_point.id to separate north and south
     northDeps = filtered.filter((dep) => dep.stop_point?.id === 10139).slice(0, 10);
     southDeps = filtered.filter((dep) => dep.stop_point?.id === 10136).slice(0, 10);
+    document.getElementById('northBound').textContent = 'Västerut';
+    document.getElementById('southBound').textContent = 'Österut';
   } else {
     // Default: direction_code 1 = north, 2 = south
     northDeps = filtered.filter((dep) => dep.direction_code === 1).slice(0, 10);
     southDeps = filtered.filter((dep) => dep.direction_code === 2).slice(0, 10);
+    document.getElementById('northBound').textContent = 'Norrgående';
+    document.getElementById('southBound').textContent = 'Södergående';
   }
 
   updateTable("north-table", northDeps);
@@ -310,76 +368,109 @@ try {
       }, 1000);
     }
 
-    function updateTable(tableId, departures) {
-      const tbody = document.getElementById(tableId).querySelector("tbody");
-      tbody.innerHTML = "";
-      if (!departures.length) {
-        tbody.innerHTML = '<tr><td colspan="3">Inga avgångar</td></tr>';
-        return;
-      }
+function updateTable(tableId, departures) {
+  const tbody = document.getElementById(tableId).querySelector("tbody");
+  tbody.innerHTML = "";
 
-      departures.forEach((dep) => {
-        const { backgroundColor, textColor } = getLineColors(dep.line.designation);
-        const cancelled = dep.state === "CANCELLED";
-        const destinationText = cancelled ? `${dep.destination} ⚠️` : dep.destination;
+  if (!departures.length) {
+    tbody.innerHTML = '<tr><td colspan="3">Inga avgångar</td></tr>';
+    return;
+  }
 
-        const scheduledTime = new Date(dep.scheduled);
-        const expectedTime = new Date(dep.expected);
-        const diffMin = Math.round((expectedTime - scheduledTime) / 60000);
+  departures.forEach((dep) => {
+    const { backgroundColor, textColor } = getLineColors(dep.line.designation);
+    const cancelled = dep.state === "CANCELLED";
+    const destinationText = cancelled ? `${dep.destination} ⚠️` : dep.destination;
 
-        const delayText = (diffMin > 3 || diffMin < -2)
-          ? `<span style="font-size:0.75rem; color: yellow; margin-right:4px;">${diffMin > 0 ? '+' : ''}${diffMin}</span>`
-          : "";
+    const scheduledTime = new Date(dep.scheduled);
+    const expectedTime = new Date(dep.expected);
+    const diffMin = Math.round((expectedTime - scheduledTime) / 60000);
 
-        const timeStyle = cancelled ? "color: red; text-decoration: line-through;" : "";
-        const cancelledText = cancelled
-          ? `<span style="color: red; font-weight: bold; margin-right: 4px;">Inställd</span>`
-          : "";
+    const delayText = (diffMin > 3 || diffMin < -2)
+      ? `<span style="font-size:0.75rem; color: yellow; margin-right:4px;">${diffMin > 0 ? '+' : ''}${diffMin}</span>`
+      : "";
 
-        const options = {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-          hour12: false,
-        };
+    const timeStyle = cancelled ? "color: red; text-decoration: line-through;" : "";
+    const cancelledText = cancelled
+      ? `<span style="color: red; font-weight: bold; margin-right: 4px;">Inställd</span>`
+      : "";
 
-        const scheduledStr = scheduledTime.toLocaleString(undefined, options);
-        const expectedStr = expectedTime.toLocaleString(undefined, options);
+    const row = document.createElement("tr");
+    row.classList.add("clickable-row");
+    row.style.cursor = "pointer";
+    row.innerHTML = `
+      <td>
+        <span class="line-wrapper">
+          <span class="line" style="background:${backgroundColor};color:${textColor};">
+            ${dep.line.designation.padStart(3, ' ')}
+          </span>
+          ${(dep.deviations && dep.deviations.length) ? `<span class="warning-icon">🟡</span>` : ""}
+        </span>
+      </td>
+      <td class="destination-cell"></td>
+      <td class="time">${cancelledText}${delayText}<span style="${timeStyle}">${dep.display}</span></td>
+    `;
 
-        const row = document.createElement("tr");
-        row.style.cursor = "pointer";
-        row.classList.add("clickable-row");
-        row.innerHTML = `
-          <td><span class="line" style="background:${backgroundColor};color:${textColor};">${dep.line.designation.padStart(3, ' ')}</span></td>
-          <td>${destinationText}</td>
-          <td class="time">${cancelledText}${delayText}<span style="${timeStyle}">${dep.display}</span></td>
-        `;
+    const destTd = row.querySelector(".destination-cell");
+    const destinationEl = document.createElement("span");
+    destinationEl.textContent = destinationText;
+    destTd.appendChild(destinationEl);
 
-        const detailsRow = document.createElement("tr");
-        detailsRow.style.display = "none";
-        detailsRow.classList.add("details-row");
-        detailsRow.innerHTML = `
+    const deviationText = (dep.deviations && dep.deviations.length)
+      ? dep.deviations.map(dev => dev.message).join(" | ")
+      : null;
+
+    if (deviationText) {
+      const scrollContainer = document.createElement("span");
+      scrollContainer.className = "scroll-container";
+
+      const deviationEl = document.createElement("span");
+      deviationEl.className = "scroll-text";
+      deviationEl.textContent = `⚠️ ${deviationText}`;
+
+      scrollContainer.appendChild(deviationEl);
+
+      let showingDeviation = false;
+
+      setInterval(() => {
+        destTd.innerHTML = '';
+        if (showingDeviation) {
+          destTd.appendChild(destinationEl);
+        } else {
+          destTd.appendChild(scrollContainer);
+        }
+        showingDeviation = !showingDeviation;
+      }, 10000);
+    }
+
+    const detailsRow = document.createElement("tr");
+    const scheduledStr = scheduledTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const expectedStr = expectedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    detailsRow.classList.add("details-row");
+    detailsRow.style.display = "none";
+            detailsRow.innerHTML = `
           <td colspan="3" style="background:#222; font-size:1rem; text-align:left; padding:0.5rem 1rem; color:#eee;">
             <div><strong>Status:</strong> ${dep.state}</div>
             <div><strong>Scheduled:</strong> ${scheduledStr}</div>
             <div><strong>Expected:</strong> ${expectedStr}</div>
+            ${deviationText ? `<div><strong>Försening:</strong> ${deviationText}</div>` : ""}
           </td>
         `;
 
-        row.addEventListener("click", () => {
-          detailsRow.style.display = detailsRow.style.display === "none" ? "table-row" : "none";
-          if (typeof resetRefreshTimer === "function") {
-            resetRefreshTimer();
-          }
-        });
+    row.addEventListener("click", () => {
+      detailsRow.style.display = detailsRow.style.display === "none" ? "table-row" : "none";
+      if (typeof resetRefreshTimer === "function") {
+        resetRefreshTimer();
+      }
+    });
 
-        tbody.appendChild(row);
-        tbody.appendChild(detailsRow);
-      });
-    }
+    tbody.appendChild(row);
+    tbody.appendChild(detailsRow);
+  });
+}
+
+    //end function 
 
     function updateBatteryStatus() {
       if (!navigator.getBattery) {
