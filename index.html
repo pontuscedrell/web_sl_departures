@@ -123,6 +123,10 @@
         padding: 0.5rem 0.5rem;
       }
 
+      td > div {
+        font-size: 0.5rem;
+      }
+
       #header {
         font-size: 0.5rem; 
         padding: 0.5rem;
@@ -135,6 +139,37 @@
       .direction-container > h2 {
         margin: 0;
       }
+
+      @media (max-width: 767px) and (orientation: landscape) {
+            #stop-selector-buttons {
+              display: none !important;
+            }
+            #stop-selector-dropdown {
+              display: flex !important;
+              justify-content: center;
+              padding: 1rem;
+            }
+
+            .tables-container {
+              flex-direction: row !important;
+              gap: 1rem; /* Optional: reduce gap for smaller screens */
+              padding: 0.5rem; /* Optional: reduce padding */
+            }
+
+            /* Optionally, make table content more compact for landscape phones */
+            th, td {
+              font-size: 1rem;
+              padding: 0.3rem 0.3rem;
+            }
+
+            #stop-name {
+              display: none;
+            }
+
+            #stop-select {
+              min-width: 300px;
+            }
+                }
     
   </style>
 </head>
@@ -355,9 +390,9 @@
         detailsRow.innerHTML = `
           <td colspan="3" style="background:#222; font-size:1rem; text-align:left; padding:0.5rem 1rem; color:#eee;">
             <div><strong>Status:</strong> ${dep.state}</div>
-            <div><strong>Scheduled:</strong> ${scheduledStr}</div>
-            <div><strong>Expected:</strong> ${expectedStr}</div>
-            ${deviationText ? `<div><strong>Försening:</strong> ${deviationText}</div>` : ""}
+            <div><strong>Schemalagd:</strong> ${scheduledStr}</div>
+            <div><strong>Förväntad:</strong> ${expectedStr}</div>
+            ${deviationText ? `<div><strong>Avvikelse:</strong> ${deviationText}</div>` : ""}
           </td>
         `;
         row.addEventListener("click", () => {
@@ -391,6 +426,44 @@
       startCountdown();
       updateBatteryStatus();
     });
+function moveDropdownToHeader() {
+  const header = document.getElementById('header');
+  const dropdown = document.getElementById('stop-selector-dropdown');
+  const stopName = document.getElementById('stop-name');
+  const lastUpdated = document.getElementById('last-updated');
+  if (header && dropdown && lastUpdated && dropdown.parentNode !== header) {
+    header.insertBefore(dropdown, lastUpdated);
+    dropdown.style.display = 'flex';
+    dropdown.style.justifyContent = 'center';
+    dropdown.style.padding = '0';
+    // Optionally add classes or tweak style for header appearance
+  }
+}
+
+function moveDropdownBack() {
+  // Find the original parent (not #header)
+  const dropdown = document.getElementById('stop-selector-dropdown');
+  const mainSelector = document.querySelector('.stop-selector:not(#stop-selector-buttons)');
+  if (dropdown && mainSelector && dropdown.parentNode !== mainSelector) {
+    mainSelector.appendChild(dropdown);
+    dropdown.style.display = '';
+    dropdown.style.justifyContent = '';
+    dropdown.style.padding = '';
+  }
+}
+
+function handleDropdownPosition() {
+  // Check if phone landscape mode (match your CSS media query)
+  if (window.matchMedia('(max-width: 767px) and (orientation: landscape)').matches) {
+    moveDropdownToHeader();
+  } else {
+    moveDropdownBack();
+  }
+}
+
+window.addEventListener('DOMContentLoaded', handleDropdownPosition);
+window.addEventListener('resize', handleDropdownPosition);
+window.addEventListener('orientationchange', handleDropdownPosition);
   </script>
 </body>
 </html>
