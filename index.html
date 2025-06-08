@@ -11,9 +11,7 @@
       --font-color: #fff;
       --font-color-muted: #aaa;
     }
-    * { 
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
     body {
       font-family: sans-serif;
       background: var(--main-bg);
@@ -25,7 +23,6 @@
       flex-direction: column;
       height: 100vh;
     }
-
     #header {
       display: flex;
       justify-content: space-between;
@@ -34,12 +31,7 @@
       background: var(--header-bg);
       font-size: 1.6rem;
     }
-
-    #stop-name { 
-      font-size: 2.5rem; 
-      min-width: 80%;
-    }
-
+    #stop-name { font-size: 2.5rem; }
     #last-updated {
       cursor: pointer;
       color: var(--font-color-muted);
@@ -57,6 +49,19 @@
       flex-direction: column;
       overflow: hidden;
     }
+
+    .ankommet-badge {
+      display: inline-block;
+      margin-left: 1em;
+      color: #ddd;
+      border: 1px solid #888;
+      border-radius: 0.7em;
+      padding: 0.1em 0.6em;
+      font-size: 0.5em;
+      font-weight: 600;
+      vertical-align: middle;
+    }
+
     h2 {
       text-align: center;
       font-size: 2rem;
@@ -73,14 +78,9 @@
       font-size: 1.6rem;
       text-align: center;
     }
-
-    .time {
-      text-align: right; 
-    }
-
     th { text-transform: uppercase; color: #bbb; position: sticky; top: 0; background: var(--main-bg); z-index: 1; }
     td:nth-child(2) { text-align: left; }
-    .line { font-weight: bold; color: #fff; padding: 0.4rem; border-radius: 0.5rem; display: inline-block; width: 4ch; min-width: 4ch; }
+    .line { font-weight: bold; color: #fff; padding: 0.4rem; border-radius: 0.5rem; display: inline-block; text-align: center; width: 4ch; min-width: 4ch; }
     .line-wrapper { position: relative; display: inline-block; }
     .warning-icon { position: absolute; top: -0.4rem; right: -0.4rem; font-size: 0.8rem; color: yellow; pointer-events: none; }
     .stop-selector { display: flex; flex-wrap: wrap; justify-content: center; padding: 1rem; background: var(--header-bg); }
@@ -91,7 +91,7 @@
     .stop-selector button.active[data-id='1351'] { background: #d61d23; }
     tr.clickable-row:hover { background-color: #222; }
     .scroll-container { position: relative; display: block; overflow: hidden; max-width: 100%; min-height: 2em; white-space: nowrap; margin-left: 0; }
-    .scroll-text { display: inline-block; white-space: nowrap; animation: scroll-left 11s linear infinite; padding-left: 100%; box-sizing: content-box; }
+    .scroll-text { display: inline-block; white-space: nowrap; animation: scroll-left 11s linear infinite; padding: 5px 0 0 100%; box-sizing: content-box; }
     .destination-cell { max-width: 20vw; width: 60%; overflow: hidden; white-space: nowrap; position: relative; padding: 0 8px; z-index: 0; }
     @keyframes scroll-left { 0% { transform: translateX(0%); } 100% { transform: translateX(-100%); } }
 
@@ -102,7 +102,7 @@
     @media (max-width: 767px) {
       .stop-selector button { font-size: 1.1rem; }
       .tables-container { flex-direction: column; }
-      
+      body { font-size: 1rem; }
       #stop-selector-dropdown { display: flex; justify-content: center; padding: 1rem; }
       #stop-selector-buttons { display: none; }
       #stop-select {
@@ -118,59 +118,8 @@
         box-sizing: border-box;
       }
       h2 { font-size: 1.2rem; }
-      th, td { 
-        font-size: 1rem; 
-        padding: 0.5rem 0.5rem;
-      }
-
-      td > div {
-        font-size: 0.5rem;
-      }
-
-      #header {
-        font-size: 0.5rem; 
-        padding: 0.5rem;
-      }
-
-      #battery-status {
-        font-size: 0.5rem; !important
-      }
-
-      .direction-container > h2 {
-        margin: 0;
-      }
-
-      @media (max-width: 767px) and (orientation: landscape) {
-            #stop-selector-buttons {
-              display: none !important;
-            }
-            #stop-selector-dropdown {
-              display: flex !important;
-              justify-content: center;
-              padding: 1rem;
-            }
-
-            .tables-container {
-              flex-direction: row !important;
-              gap: 1rem; /* Optional: reduce gap for smaller screens */
-              padding: 0.5rem; /* Optional: reduce padding */
-            }
-
-            /* Optionally, make table content more compact for landscape phones */
-            th, td {
-              font-size: 1rem;
-              padding: 0.3rem 0.3rem;
-            }
-
-            #stop-name {
-              display: none;
-            }
-
-            #stop-select {
-              min-width: 300px;
-            }
-                }
-    
+      th, td { font-size: 1rem; }
+    }
   </style>
 </head>
 <body>
@@ -178,7 +127,7 @@
     <div id="stop-name">Laddar...</div>
     <div id="last-updated" onclick="manualRefresh()">
       Senast uppdaterad: <span id="updated-time">-</span> (<span id="countdown">30</span>s)
-      <span id="battery-status" style="margin-left: 1rem; color: #aaa;">--%</span>
+      <span id="battery-status" style="margin-left: 1rem; font-size: 1.4rem; color: #aaa;">--%</span>
     </div>
   </div>
   <div class="tables-container">
@@ -349,7 +298,13 @@
           <td>
             <span class="line-wrapper">
               <span class="line" style="background:${backgroundColor};color:${textColor};">${dep.line.designation.padStart(3, ' ')}</span>
-              ${(dep.deviations && dep.deviations.length) ? `<span class="warning-icon">🟡</span>` : ""}
+                ${
+                  dep.state === "CANCELLED"
+                    ? `<span class="warning-icon">🔴</span>`
+                    : (dep.deviations && dep.deviations.length)
+                      ? `<span class="warning-icon">🟡</span>`
+                      : ""
+                }
             </span>
           </td>
           <td class="destination-cell"></td>
@@ -359,6 +314,12 @@
         const destTd = row.querySelector(".destination-cell");
         const destinationEl = document.createElement("span");
         destinationEl.textContent = dep.destination;
+        if (dep.state === "ATSTOP") {
+          const badge = document.createElement("span");
+          badge.className = "ankommet-badge";
+          badge.textContent = "Ankommet";
+          destinationEl.appendChild(badge);
+        }
         destTd.appendChild(destinationEl);
         // Skip deviation message if only "inställd"
         const deviationText = (dep.deviations && dep.deviations.length)
@@ -383,16 +344,16 @@
           }, 11000);
         }
         const detailsRow = document.createElement("tr");
-        const scheduledStr = scheduledTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const expectedStr = expectedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const scheduledStr = scheduledTime.toLocaleString('sv-SE', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(',', '');
+const expectedStr = expectedTime.toLocaleString('sv-SE', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(',', '');
         detailsRow.classList.add("details-row");
         detailsRow.style.display = "none";
         detailsRow.innerHTML = `
           <td colspan="3" style="background:#222; font-size:1rem; text-align:left; padding:0.5rem 1rem; color:#eee;">
             <div><strong>Status:</strong> ${dep.state}</div>
-            <div><strong>Schemalagd:</strong> ${scheduledStr}</div>
-            <div><strong>Förväntad:</strong> ${expectedStr}</div>
-            ${deviationText ? `<div><strong>Avvikelse:</strong> ${deviationText}</div>` : ""}
+            <div><strong>Scheduled:</strong> ${scheduledStr}</div>
+            <div><strong>Expected:</strong> ${expectedStr}</div>
+            ${deviationText ? `<div><strong>Försening:</strong> ${deviationText}</div>` : ""}
           </td>
         `;
         row.addEventListener("click", () => {
@@ -426,44 +387,6 @@
       startCountdown();
       updateBatteryStatus();
     });
-function moveDropdownToHeader() {
-  const header = document.getElementById('header');
-  const dropdown = document.getElementById('stop-selector-dropdown');
-  const stopName = document.getElementById('stop-name');
-  const lastUpdated = document.getElementById('last-updated');
-  if (header && dropdown && lastUpdated && dropdown.parentNode !== header) {
-    header.insertBefore(dropdown, lastUpdated);
-    dropdown.style.display = 'flex';
-    dropdown.style.justifyContent = 'center';
-    dropdown.style.padding = '0';
-    // Optionally add classes or tweak style for header appearance
-  }
-}
-
-function moveDropdownBack() {
-  // Find the original parent (not #header)
-  const dropdown = document.getElementById('stop-selector-dropdown');
-  const mainSelector = document.querySelector('.stop-selector:not(#stop-selector-buttons)');
-  if (dropdown && mainSelector && dropdown.parentNode !== mainSelector) {
-    mainSelector.appendChild(dropdown);
-    dropdown.style.display = '';
-    dropdown.style.justifyContent = '';
-    dropdown.style.padding = '';
-  }
-}
-
-function handleDropdownPosition() {
-  // Check if phone landscape mode (match your CSS media query)
-  if (window.matchMedia('(max-width: 767px) and (orientation: landscape)').matches) {
-    moveDropdownToHeader();
-  } else {
-    moveDropdownBack();
-  }
-}
-
-window.addEventListener('DOMContentLoaded', handleDropdownPosition);
-window.addEventListener('resize', handleDropdownPosition);
-window.addEventListener('orientationchange', handleDropdownPosition);
   </script>
 </body>
 </html>
