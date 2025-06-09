@@ -37,7 +37,7 @@ För att hitta rätt stationsnummer kan du använda SL:s officiella API för sta
 
 1. Öppna länken i en webbläsare eller använd ett verktyg som `curl` eller Postman för att göra en GET-förfrågan.
 2. Du får tillbaka en JSON-lista med stationer (`sites`) som innehåller namn och ID.
-3. Sök efter den station du vill lägga till, till exempel "Grindsgatan".
+3. Ctrl + f:a efter den station du vill lägga till, till exempel "Skanstull".
 4. Stationsnumret är värdet i fältet `id` för den stationen.
 5. Använd detta `id` som stationsnummer i källkoden för att visa avgångar från den stationen.
 
