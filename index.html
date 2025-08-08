@@ -1,368 +1,469 @@
 <!DOCTYPE html>
 <html lang="sv">
 <head>
-<meta charset="UTF-8">
-<title>Avgångstavla</title>
-<style>
-  body {
-    margin: 0;
-    background: #000;
-    color: #fff;
-    font-family: sans-serif;
-    width: 640px;
-    height: 360px;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    padding: 10px;
-    box-sizing: border-box;
-  }
-  .columns {
-    display: flex;
-    flex: 1;
-    gap: 12px;
-  }
-  .col {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    background: #111;
-    border-radius: 8px;
-    padding: 10px;
-    overflow: hidden;
-  }
-  .top-row {
-    display: flex;
-    align-items: center;
-    font-size: 30px;
-    margin-bottom: 4px;
-    min-width: 0;
-  }
-  .line {
-    font-weight: bold;
-    padding: 0.4rem;
-    border-radius: 0.5rem;
-    display: inline-block;
-    text-align: center;
-    width: 4ch;
-    min-width: 4ch;
-    margin-right: 10px;
-    flex-shrink: 0;
-  }
-  .destination {
-    flex: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-	margin-left: 5px;
-  }
-  .big-minutes {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 64px;
-    font-weight: 700;
-    text-align: center;
-    margin: 0px 0 20px;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 20px;
-    table-layout: fixed;
-  }
-  th {
-    text-align: left;
-    color: #bbb;
-    font-weight: normal;
-    padding-bottom: 4px;
-    border-bottom: 2px solid #444;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-  }
-  td {
-    padding: 2px 0;
-    vertical-align: middle;
-    border-bottom: 1px solid #333;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-  }
-td:nth-child(1), th:nth-child(1) {
-  width: 6ch; /* tillräckligt för två siffror + padding */
-}
-td:nth-child(2), th:nth-child(2) {
-  width: auto; /* flexar ut */
-}
-td:nth-child(3), th:nth-child(3) {
-  width: 6ch; /* tillräckligt för t.ex. '12 min' */
-  text-align: right;
-}
-  .next-line {
-    font-weight: bold;
-    padding: 0.3rem;
-    border-radius: 0.5rem;
-    display: inline-block;
-    text-align: center;
-    width: 4ch;
-    min-width: 4ch;
-    font-size: 0.9em;
-  }
-  .next-dest {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-  }
-  .next-time {
-    text-align: right;
-    white-space: nowrap;
-  }
-  
-  .line-wrapper {
-  position: relative;
-  display: inline-block;
-}
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SL Avgångar</title>
+  <style>
+    :root {
+      --main-bg: #111;
+      --header-bg: #222;
+      --font-color: #fff;
+      --font-color-muted: #aaa;
+    }
+    * { 
+      box-sizing: border-box;
+    }
+    body {
+      font-family: sans-serif;
+      background: var(--main-bg);
+      color: var(--font-color);
+      margin: 0;
+      padding: 0;
+      font-size: 1.2rem;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
 
-.warning-icon {
- position: absolute; top: -0.4rem; right: -0.4rem; font-size: 0.8rem; color: yellow; pointer-events: none; }
+    #header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem;
+      background: var(--header-bg);
+      font-size: 1.6rem;
+    }
 
-/* Extra space in table rows for badge */
-table tbody td {
-  padding-top: 6px;   /* was 2px before */
-  padding-bottom: 6px;
-  vertical-align: middle;
-}
+    #stop-name { 
+      font-size: 2.5rem; 
+      min-width: 80%;
+    }
 
+    #last-updated {
+      cursor: pointer;
+      color: var(--font-color-muted);
+    }
+    .tables-container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      gap: 2rem;
+      padding: 1rem;
+    }
+    .direction-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    h2 {
+      text-align: center;
+      font-size: 2rem;
+      margin: 1rem 0;
+    }
+    .table-wrapper { flex: 1; overflow-y: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 1rem 0.5rem;
+      border-bottom: 2px solid #555;
+      font-size: 1.6rem;
+      text-align: center;
+    }
 
+    .time {
+      text-align: right; 
+    }
 
-</style>
+    th { text-transform: uppercase; color: #bbb; position: sticky; top: 0; background: var(--main-bg); z-index: 1; }
+    td:nth-child(2) { text-align: left; }
+    .line { font-weight: bold; color: #fff; padding: 0.4rem; border-radius: 0.5rem; display: inline-block; width: 4ch; min-width: 4ch; }
+    .line-wrapper { position: relative; display: inline-block; }
+    .warning-icon { position: absolute; top: -0.4rem; right: -0.4rem; font-size: 0.8rem; color: yellow; pointer-events: none; }
+    .stop-selector { display: flex; flex-wrap: wrap; justify-content: center; padding: 1rem; background: var(--header-bg); }
+    .stop-selector button { background: #333; color: white; border: none; padding: 0.8rem 1.6rem; margin: 0.5rem; cursor: pointer; border-radius: 0.5rem; font-size: 1.6rem; }
+    .stop-selector button.active[data-id='1353'] { background: #d61d23; }
+    .stop-selector button.active[data-id='9190'] { background: #169d4c; }
+    .stop-selector button.active[data-id='9530'] { background: #d05d9a; }
+    .stop-selector button.active[data-id='1351'] { background: #d61d23; }
+    tr.clickable-row:hover { background-color: #222; }
+    .scroll-container { position: relative; display: block; overflow: hidden; max-width: 100%; min-height: 2em; white-space: nowrap; margin-left: 0; }
+    .scroll-text { display: inline-block; white-space: nowrap; animation: scroll-left 11s linear infinite; padding-left: 100%; box-sizing: content-box; }
+    .destination-cell { max-width: 20vw; width: 60%; overflow: hidden; white-space: nowrap; position: relative; padding: 0 8px; z-index: 0; }
+    @keyframes scroll-left { 0% { transform: translateX(0%); } 100% { transform: translateX(-100%); } }
+
+    /* Desktop: show button selector, hide dropdown */
+    #stop-selector-dropdown { display: none; }
+    #stop-selector-buttons { display: flex; }
+
+    @media (max-width: 767px) {
+      .stop-selector button { font-size: 1.1rem; }
+      .tables-container { flex-direction: column; }
+      
+      #stop-selector-dropdown { display: flex; justify-content: center; padding: 1rem; }
+      #stop-selector-buttons { display: none; }
+      #stop-select {
+        font-size: 1.2rem;
+        padding: 0.6rem 1.2rem;
+        border-radius: 0.5rem;
+        border: 1px solid #333;
+        background: #222;
+        color: #fff;
+        width: 95%; 
+        max-width: 500px;
+        margin: 0 auto;
+        box-sizing: border-box;
+      }
+      h2 { font-size: 1.2rem; }
+      th, td { 
+        font-size: 1rem; 
+        padding: 0.5rem 0.5rem;
+      }
+
+      td > div {
+        font-size: 0.5rem;
+      }
+
+      #header {
+        font-size: 0.5rem; 
+        padding: 0.5rem;
+      }
+
+      #battery-status {
+        font-size: 0.5rem; !important
+      }
+
+      .direction-container > h2 {
+        margin: 0;
+      }
+
+      @media (max-width: 767px) and (orientation: landscape) {
+            #stop-selector-buttons {
+              display: none !important;
+            }
+            #stop-selector-dropdown {
+              display: flex !important;
+              justify-content: center;
+              padding: 1rem;
+            }
+
+            .tables-container {
+              flex-direction: row !important;
+              gap: 1rem; /* Optional: reduce gap for smaller screens */
+              padding: 0.5rem; /* Optional: reduce padding */
+            }
+
+            /* Optionally, make table content more compact for landscape phones */
+            th, td {
+              font-size: 1rem;
+              padding: 0.3rem 0.3rem;
+            }
+
+            #stop-name {
+              display: none;
+            }
+
+            #stop-select {
+              min-width: 300px;
+            }
+                }
+    
+  </style>
 </head>
 <body>
-<div class="columns">
-  <div class="col">
-    <div class="top-row">
-      <div id="tram-line" class="line">-</div>
-      <div id="tram-dest" class="destination"></div>
+  <div id="header">
+    <div id="stop-name">Laddar...</div>
+    <div id="last-updated" onclick="manualRefresh()">
+      Senast uppdaterad: <span id="updated-time">-</span> (<span id="countdown">30</span>s)
+      <span id="battery-status" style="margin-left: 1rem; color: #aaa;">--%</span>
     </div>
-    <div id="tram-min" class="big-minutes">--</div>
-    <table>
-      <thead>
-        <tr>
-          <th>Linje</th>
-          <th>Destination</th>
-          <th>Tid</th>
-        </tr>
-      </thead>
-      <tbody id="tram-next">
-        <tr><td colspan="3" style="text-align:center;color:#bbb;">Laddar...</td></tr>
-      </tbody>
-    </table>
   </div>
-  <div class="col">
-    <div class="top-row">
-      <div id="train-line" class="line">-</div>
-      <div id="train-dest" class="destination"></div>
+  <div class="tables-container">
+    <div class="direction-container">
+      <h2 id="northBound">Norrgående</h2>
+      <div class="table-wrapper">
+        <table id="north-table"><thead><tr><th>Linje</th><th>Destination</th><th class="time">Tid</th></tr></thead><tbody><tr><td colspan="3">Laddar...</td></tr></tbody></table>
+      </div>
     </div>
-    <div id="train-min" class="big-minutes">--</div>
-    <table>
-      <thead>
-        <tr>
-          <th>Linje</th>
-          <th>Destination</th>
-          <th>Tid</th>
-        </tr>
-      </thead>
-      <tbody id="train-next">
-        <tr><td colspan="3" style="text-align:center;color:#bbb;">Laddar...</td></tr>
-      </tbody>
-    </table>
+    <div class="direction-container">
+      <h2 id="southBound">Södergående</h2>
+      <div class="table-wrapper">
+        <table id="south-table"><thead><tr><th>Linje</th><th class="dest1">Destination</th><th class="time">Tid</th></tr></thead><tbody><tr><td colspan="3">Laddar...</td></tr></tbody></table>
+      </div>
+    </div>
   </div>
-</div>
+  <div class="stop-selector" id="stop-selector-buttons"></div>
+  <div class="stop-selector" id="stop-selector-dropdown">
+    <select id="stop-select"></select>
+  </div>
+  <script>
+    let currentSiteId = 1353;
+    let currentStop = "Grindsgatan";
+    let countdown = 30;
+    let countdownInterval;
+    const knownStops = { Grindsgatan: 1353, Skanstull: 9190, "Södra Station": 9530, Rosenlund: 1351 };
 
-<script>
-let currentSiteId = 9531;
+    function renderStopSelector() {
+      // Button selector (desktop)
+      const btnContainer = document.getElementById("stop-selector-buttons");
+      btnContainer.innerHTML = "";
+      Object.entries(knownStops).forEach(([stopName, stopId]) => {
+        const btn = document.createElement("button");
+        btn.textContent = stopName;
+        btn.onclick = () => {
+          currentSiteId = stopId;
+          currentStop = stopName;
+          fetchDepartures();
+          updateActiveStopButton();
+          document.querySelectorAll(".table-wrapper").forEach((w) => (w.scrollTop = 0));
+          // Sync dropdown on selection
+          const sel = document.getElementById("stop-select");
+          if (sel) sel.value = stopId;
+        };
+        btn.dataset.id = stopId;
+        btnContainer.appendChild(btn);
+      });
 
-function getLineColors(designation) {
-  let backgroundColor = "#555";
-  let textColor = "white";
-  if (["17", "18", "19"].includes(designation)) backgroundColor = "#169d4c";
-  else if (["1", "2", "3", "4"].includes(designation)) backgroundColor = "#008aca";
-  else if (["57", "74", "154", "164"].includes(designation)) backgroundColor = "#d61d23";
-  else if (["40", "41", "42", "43", "44"].includes(designation)) backgroundColor = "#d05d9a";
-  else if (["30", "31"].includes(designation)) backgroundColor = "#b65f1f";
-  return { backgroundColor, textColor };
-}
+      // Dropdown selector (mobile)
+      const select = document.getElementById("stop-select");
+      select.innerHTML = "";
+      Object.entries(knownStops).forEach(([stopName, stopId]) => {
+        const opt = document.createElement("option");
+        opt.value = stopId;
+        opt.textContent = stopName;
+        if (stopId === currentSiteId) opt.selected = true;
+        select.appendChild(opt);
+      });
+      select.onchange = function() {
+        const stopId = parseInt(this.value, 10);
+        const stopName = Object.keys(knownStops).find(key => knownStops[key] === stopId);
+        currentSiteId = stopId;
+        currentStop = stopName;
+        fetchDepartures();
+        updateActiveStopButton();
+        document.querySelectorAll(".table-wrapper").forEach((w) => (w.scrollTop = 0));
+      };
 
-async function fetchDepartures() {
-  try {
-    const res = await fetch(`https://transport.integration.sl.se/v1/sites/${currentSiteId}/departures`);
-    if (!res.ok) throw new Error(`API-svar: ${res.status} ${res.statusText}`);
-    const data = await res.json();
-    if (!data.departures) throw new Error("Ingen 'departures'-nyckel i API-svaret");
-	
-	
-
-    const trams = data.departures
-      .filter(dep => dep.line.transport_mode === "TRAM" && dep.direction_code === 1)
-      .slice(0, 3);
-
-    const trains = data.departures
-      .filter(dep => dep.line.transport_mode === "TRAIN" && dep.direction_code === 2)
-      .slice(0, 3);
-
-    updateColumn("tram", trams);
-    updateColumn("train", trains);
-  } catch (err) {
-    console.error("Fel vid hämtning:", err);
-    showErrorState("tram");
-    showErrorState("train");
-  }
-}
-
-function updateColumn(prefix, departures) {
-  const lineEl = document.getElementById(`${prefix}-line`);
-  const destEl = document.getElementById(`${prefix}-dest`);
-  const minEl = document.getElementById(`${prefix}-min`);
-  const tbody = document.getElementById(`${prefix}-next`);
-
-  if (!departures.length) {
-    showErrorState(prefix);
-    return;
-  }
-
-  const first = departures[0];
-  if (first.state === "CANCELLED") {
-  // Line without badge
-  lineEl.innerHTML = `
-    <span class="line-wrapper">
-      <span class="line" style="background:${colors.backgroundColor};color:${colors.textColor};">${designation}</span>
-    </span>
-  `;
-
-  // Destination in red
-  destEl.textContent = first.destination;
-  destEl.style.color = "red";
-
-  // Strike minutes and add small "inställd" below
-  minEl.innerHTML = `
-    <span style="text-decoration: line-through; font-size: 44px; display: block;">${first.display}</span>
-    <span style="font-size: 20px; color: red;">inställd</span>
-  `;
-  return; // Skip normal display logic
-}
-
-  const designation = first.line.designation || first.line.name || "-";
-  const colors = getLineColors(designation);
-
-  // --- Top departure: no warning icon ---
-  lineEl.innerHTML = `
-    <span class="line-wrapper">
-      <span class="line" style="background:${colors.backgroundColor};color:${colors.textColor};">
-        ${designation}
-      </span>
-    </span>
-  `;
-
-  destEl.textContent = first.destination;
-  minEl.textContent = first.display;
-
-  // Delay/early coloring logic
-  if (first.state !== "CANCELLED" && first.expected && first.scheduled) {
-    const scheduled = new Date(first.scheduled);
-    const expected = new Date(first.expected);
-    const diffMin = Math.round((expected - scheduled) / 60000);
-    if (diffMin > 3 || diffMin < -2) {
-      minEl.textContent += ` (${diffMin > 0 ? "+" : ""}${diffMin})`;
-      minEl.style.color = "yellow";
-    } else {
-      minEl.style.color = "";
+      updateActiveStopButton();
     }
-  } else if (first.state === "CANCELLED") {
-    minEl.style.color = "red";
+
+    function updateActiveStopButton() {
+      document.querySelectorAll("#stop-selector-buttons button").forEach((btn) => {
+        btn.classList.toggle("active", parseInt(btn.dataset.id) === currentSiteId);
+      });
+      // Sync dropdown value
+      const select = document.getElementById("stop-select");
+      if (select) select.value = currentSiteId;
+    }
+
+    function getLineColors(designation) {
+      let backgroundColor = "#555";
+      let textColor = "white";
+      if (["17", "18", "19"].includes(designation)) backgroundColor = "#169d4c";
+      else if (["1", "2", "3", "4"].includes(designation)) backgroundColor = "#008aca";
+      else if (["57", "74", "154", "164"].includes(designation)) backgroundColor = "#d61d23";
+      else if (["40", "41", "42", "43", "44"].includes(designation)) backgroundColor = "#d05d9a";
+      return { backgroundColor, textColor };
+    }
+
+    function filterDepartures(departures) {
+      if (currentStop === "Skanstull") return departures.filter(dep => dep.line.transport_mode === "METRO");
+      if (currentStop === "Grindsgatan") return departures.filter(dep => dep.line.transport_mode === "BUS");
+      if (currentStop === "Södra Station") return departures.filter(dep => dep.line.transport_mode === "TRAIN");
+      if (currentStop === "Rosenlund") return departures.filter(dep => dep.line.transport_mode === "BUS");
+      return departures;
+    }
+
+    async function fetchDepartures() {
+      try {
+        const res = await fetch(`https://transport.integration.sl.se/v1/sites/${currentSiteId}/departures`);
+        const data = await res.json();
+        const filtered = filterDepartures(data.departures);
+        let northDeps, southDeps;
+        if (currentStop === "Södra Station") {
+          northDeps = filtered.filter(dep => dep.direction_code === 2).slice(0, 10);
+          southDeps = filtered.filter(dep => dep.direction_code === 1).slice(0, 10);
+          document.getElementById('northBound').textContent = 'Norrgående';
+          document.getElementById('southBound').textContent = 'Södergående';
+        } else if (currentStop === "Rosenlund") {
+          northDeps = filtered.filter(dep => dep.stop_point?.id === 10139).slice(0, 10);
+          southDeps = filtered.filter(dep => dep.stop_point?.id === 10136).slice(0, 10);
+          document.getElementById('northBound').textContent = 'Västerut';
+          document.getElementById('southBound').textContent = 'Österut';
+        } else {
+          northDeps = filtered.filter(dep => dep.direction_code === 1).slice(0, 10);
+          southDeps = filtered.filter(dep => dep.direction_code === 2).slice(0, 10);
+          document.getElementById('northBound').textContent = 'Norrgående';
+          document.getElementById('southBound').textContent = 'Södergående';
+        }
+        updateTable("north-table", northDeps);
+        updateTable("south-table", southDeps);
+        document.getElementById("stop-name").textContent = data.stop_name || currentStop;
+        const now = new Date();
+        document.getElementById("updated-time").textContent = now.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        countdown = 30;
+      } catch (err) {
+        console.error("Fel vid hämtning av avgångar:", err);
+      }
+    }
+
+    function manualRefresh() {
+      fetchDepartures();
+      countdown = 30;
+    }
+
+    function startCountdown() {
+      countdownInterval = setInterval(() => {
+        countdown--;
+        if (countdown <= 0) { fetchDepartures(); }
+        document.getElementById("countdown").textContent = countdown;
+      }, 1000);
+    }
+
+    function updateTable(tableId, departures) {
+      const tbody = document.getElementById(tableId).querySelector("tbody");
+      tbody.innerHTML = "";
+      if (!departures.length) {
+        tbody.innerHTML = '<tr><td colspan="3">Inga avgångar</td></tr>';
+        return;
+      }
+      departures.forEach(dep => {
+        const { backgroundColor, textColor } = getLineColors(dep.line.designation);
+        const cancelled = dep.state === "CANCELLED";
+        const scheduledTime = new Date(dep.scheduled);
+        const expectedTime = new Date(dep.expected);
+        const diffMin = Math.round((expectedTime - scheduledTime) / 60000);
+        let delayText = "";
+        if (!cancelled && (diffMin > 3 || diffMin < -2)) {
+          delayText = `<span style="font-size:0.75rem; color: yellow; margin-right:4px;">${diffMin > 0 ? '+' : ''}${diffMin}</span>`;
+        }
+        const timeStyle = cancelled ? "color: red; text-decoration: line-through;" : "";
+        const cancelledText = cancelled ? `<div style="color: red; font-size: 0.8rem; font-weight: bold; line-height: 1;">Inställd</div>` : "";
+        const row = document.createElement("tr");
+        row.classList.add("clickable-row");
+        row.style.cursor = "pointer";
+        row.innerHTML = `
+          <td>
+            <span class="line-wrapper">
+              <span class="line" style="background:${backgroundColor};color:${textColor};">${dep.line.designation.padStart(3, ' ')}</span>
+              ${(dep.deviations && dep.deviations.length) ? `<span class="warning-icon">🟡</span>` : ""}
+            </span>
+          </td>
+          <td class="destination-cell"></td>
+          <td class="time">${cancelledText}${delayText}<span style="${timeStyle}">${dep.display}</span></td>
+        `;
+        // Scrolling deviation text logic (single interval per cell)
+        const destTd = row.querySelector(".destination-cell");
+        const destinationEl = document.createElement("span");
+        destinationEl.textContent = dep.destination;
+        destTd.appendChild(destinationEl);
+        // Skip deviation message if only "inställd"
+        const deviationText = (dep.deviations && dep.deviations.length)
+          ? dep.deviations
+              .map(dev => dev.message)
+              .filter(msg => msg && msg.trim().toLowerCase() !== "inställd")
+              .join(" | ")
+          : null;
+        if (deviationText) {
+          const scrollContainer = document.createElement("span");
+          scrollContainer.className = "scroll-container";
+          const deviationEl = document.createElement("span");
+          deviationEl.className = "scroll-text";
+          deviationEl.textContent = `⚠️ ${deviationText}`;
+          scrollContainer.appendChild(deviationEl);
+          let showingDeviation = false;
+          setInterval(() => {
+            destTd.innerHTML = '';
+            if (showingDeviation) destTd.appendChild(destinationEl);
+            else destTd.appendChild(scrollContainer);
+            showingDeviation = !showingDeviation;
+          }, 11000);
+        }
+        const detailsRow = document.createElement("tr");
+        const scheduledStr = scheduledTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const expectedStr = expectedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        detailsRow.classList.add("details-row");
+        detailsRow.style.display = "none";
+        detailsRow.innerHTML = `
+          <td colspan="3" style="background:#222; font-size:1rem; text-align:left; padding:0.5rem 1rem; color:#eee;">
+            <div><strong>Status:</strong> ${dep.state}</div>
+            <div><strong>Schemalagd:</strong> ${scheduledStr}</div>
+            <div><strong>Förväntad:</strong> ${expectedStr}</div>
+            ${deviationText ? `<div><strong>Avvikelse:</strong> ${deviationText}</div>` : ""}
+          </td>
+        `;
+        row.addEventListener("click", () => {
+          detailsRow.style.display = detailsRow.style.display === "none" ? "table-row" : "none";
+          countdown = 30;
+          document.getElementById("countdown").textContent = countdown;
+        });
+        tbody.appendChild(row);
+        tbody.appendChild(detailsRow);
+      });
+    }
+
+    function updateBatteryStatus() {
+      if (!navigator.getBattery) {
+        document.getElementById("battery-status").textContent = "N/A";
+        return;
+      }
+      navigator.getBattery().then(battery => {
+        function updateAll() {
+          const level = Math.round(battery.level * 100);
+          document.getElementById("battery-status").textContent = level + "%";
+        }
+        updateAll();
+        battery.addEventListener("levelchange", updateAll);
+        battery.addEventListener("chargingchange", updateAll);
+      });
+    }
+    document.addEventListener("DOMContentLoaded", () => {
+      renderStopSelector();
+      fetchDepartures();
+      startCountdown();
+      updateBatteryStatus();
+    });
+function moveDropdownToHeader() {
+  const header = document.getElementById('header');
+  const dropdown = document.getElementById('stop-selector-dropdown');
+  const stopName = document.getElementById('stop-name');
+  const lastUpdated = document.getElementById('last-updated');
+  if (header && dropdown && lastUpdated && dropdown.parentNode !== header) {
+    header.insertBefore(dropdown, lastUpdated);
+    dropdown.style.display = 'flex';
+    dropdown.style.justifyContent = 'center';
+    dropdown.style.padding = '0';
+    // Optionally add classes or tweak style for header appearance
   }
-
-  // Deviation text scroller
-  if (first.deviations && first.deviations.length) {
-    const devMsg = first.deviations
-      .map(dev => dev.message)
-      .filter(msg => msg && msg.trim().toLowerCase() !== "inställd")
-      .join(" | ");
-if (devMsg) {
-  const scrollDiv = document.createElement("div");
-  scrollDiv.style.whiteSpace = "nowrap";
-  scrollDiv.style.overflow = "hidden";
-  scrollDiv.style.fontSize = "14px";
-  scrollDiv.style.color = "yellow";
-
-  const scrollText = document.createElement("div");
-  scrollText.textContent = `${devMsg}`;
-  scrollText.style.display = "inline-block";
-  scrollText.style.paddingLeft = "100%";
-
-  // --- Dynamic speed based on length ---
-  const charCount = scrollText.textContent.length;
-  const seconds = Math.max(8, Math.min(20, charCount * 0.11));
-  // minimum 8s, maximum 40s
-  scrollText.style.animation = `scroll-left ${seconds}s linear infinite`;
-  // --------------------------------------
-
-  scrollDiv.appendChild(scrollText);
-  destEl.appendChild(scrollDiv);
 }
+
+function moveDropdownBack() {
+  // Find the original parent (not #header)
+  const dropdown = document.getElementById('stop-selector-dropdown');
+  const mainSelector = document.querySelector('.stop-selector:not(#stop-selector-buttons)');
+  if (dropdown && mainSelector && dropdown.parentNode !== mainSelector) {
+    mainSelector.appendChild(dropdown);
+    dropdown.style.display = '';
+    dropdown.style.justifyContent = '';
+    dropdown.style.padding = '';
   }
-
-  // Next departures (with warning badge logic)
-  tbody.innerHTML = "";
-  departures.slice(1).forEach(dep => {
-    const depDesignation = dep.line.designation || dep.line.name || "-";
-    const depColors = getLineColors(depDesignation);
-
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>
-        <span class="line-wrapper">
-          <span class="next-line" style="background:${depColors.backgroundColor};color:${depColors.textColor};">
-            ${depDesignation}
-          </span>
-          ${
-            dep.state === "CANCELLED"
-              ? `<span class="warning-icon">🔴</span>`
-              : (dep.deviations && dep.deviations.length)
-                ? `<span class="warning-icon">🟡</span>`
-                : ""
-          }
-        </span>
-      </td>
-      <td class="next-dest">${dep.destination}</td>
-      <td class="next-time">${dep.display}</td>
-    `;
-    tbody.appendChild(row);
-  });
 }
 
-function showErrorState(prefix) {
-  document.getElementById(`${prefix}-line`).textContent = "-";
-  document.getElementById(`${prefix}-line`).style.backgroundColor = "#555";
-  document.getElementById(`${prefix}-dest`).textContent = "";
-  document.getElementById(`${prefix}-min`).textContent = "--";
-  document.getElementById(`${prefix}-next`).innerHTML =
-    `<tr><td colspan="3" style="text-align:center;color:#bbb;">Ingen data tillgänglig</td></tr>`;
+function handleDropdownPosition() {
+  // Check if phone landscape mode (match your CSS media query)
+  if (window.matchMedia('(max-width: 767px) and (orientation: landscape)').matches) {
+    moveDropdownToHeader();
+  } else {
+    moveDropdownBack();
+  }
 }
 
-fetchDepartures();
-
-
-
-setInterval(fetchDepartures, 30000);
-</script>
-
-</script>
-
-<style>
-@keyframes scroll-left {
-  0% { transform: translateX(0%); }
-  100% { transform: translateX(-100%); }
-}
-</style>
-</script>
+window.addEventListener('DOMContentLoaded', handleDropdownPosition);
+window.addEventListener('resize', handleDropdownPosition);
+window.addEventListener('orientationchange', handleDropdownPosition);
+  </script>
 </body>
 </html>
