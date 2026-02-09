@@ -333,9 +333,10 @@
     <select id="stop-select"></select>
   </div>
   <script>
+    const COUNTDOWN_RESET_SECONDS = 30;
     let currentSiteId = 1353;
     let currentStop = "Grindsgatan";
-    let countdown = 30;
+    let countdown = COUNTDOWN_RESET_SECONDS;
     let countdownInterval;
     const knownStops = { Grindsgatan: 1353, Skanstull: 9190, "Södra Station": 9530, Rosenlund: 1351 };
 
@@ -437,7 +438,7 @@
         document.getElementById("stop-name").textContent = data.stop_name || currentStop;
         const now = new Date();
         document.getElementById("updated-time").textContent = now.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        countdown = 30;
+        countdown = COUNTDOWN_RESET_SECONDS;
       } catch (err) {
         console.error("Fel vid hämtning av avgångar:", err);
       }
@@ -445,7 +446,7 @@
 
     function manualRefresh() {
       fetchDepartures();
-      countdown = 30;
+      countdown = COUNTDOWN_RESET_SECONDS;
     }
 
     function startCountdown() {
@@ -505,7 +506,7 @@
       cardContainer.onclick = () => {
         const detailsDiv = cardContainer.querySelector(".card-details");
         detailsDiv.style.display = detailsDiv.style.display === "none" ? "block" : "none";
-        countdown = 30;
+        countdown = COUNTDOWN_RESET_SECONDS;
         document.getElementById("countdown").textContent = countdown;
       };
     }
@@ -601,7 +602,7 @@
         `;
         row.addEventListener("click", () => {
           detailsRow.style.display = detailsRow.style.display === "none" ? "table-row" : "none";
-          countdown = 30;
+          countdown = COUNTDOWN_RESET_SECONDS;
           document.getElementById("countdown").textContent = countdown;
         });
         tbody.appendChild(row);
