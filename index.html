@@ -170,6 +170,137 @@
               min-width: 300px;
             }
                 }
+    }
+
+    /* Next Departure Card Styling */
+    .next-departure-card {
+      background: #1a1a2e;
+      border: 1px solid #444;
+      border-radius: 0.75rem;
+      padding: 1.2rem 1.5rem;
+      margin-bottom: 1rem;
+      display: none; /* Hidden by default, shown when there are departures */
+    }
+
+    .next-departure-card .card-label {
+      font-size: 0.9rem;
+      color: #aaa;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+
+    .next-departure-card .card-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .next-departure-card .card-line {
+      font-weight: bold;
+      color: #fff;
+      padding: 0.5rem 0.6rem;
+      border-radius: 0.5rem;
+      display: inline-block;
+      font-size: 2.2rem;
+      min-width: 5ch;
+      text-align: center;
+    }
+
+    .next-departure-card .card-destination {
+      font-size: 1.8rem;
+      flex: 1;
+      margin-left: 1rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .next-departure-card .card-time {
+      font-size: 2.2rem;
+      margin-left: auto;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .next-departure-card .card-delay {
+      font-size: 0.9rem;
+      color: yellow;
+      margin-right: 0.5rem;
+    }
+
+    .next-departure-card .card-cancelled {
+      color: red;
+      text-decoration: line-through;
+    }
+
+    .next-departure-card .card-cancelled-label {
+      color: red;
+      font-size: 0.9rem;
+      font-weight: bold;
+      display: block;
+      margin-top: 0.3rem;
+    }
+
+    .next-departure-card .card-warning {
+      font-size: 1rem;
+      margin-left: 0.3rem;
+    }
+
+    .next-departure-card .card-details {
+      display: none;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid #444;
+      font-size: 1rem;
+      color: #eee;
+    }
+
+    .next-departure-card .card-details div {
+      margin-bottom: 0.3rem;
+    }
+
+    .next-departure-card:hover {
+      background: #222;
+      cursor: pointer;
+    }
+
+    @media (max-width: 767px) {
+      .next-departure-card {
+        padding: 0.8rem 1rem;
+      }
+
+      .next-departure-card .card-label {
+        font-size: 0.75rem;
+      }
+
+      .next-departure-card .card-line {
+        font-size: 1.4rem;
+        min-width: 4ch;
+        padding: 0.3rem 0.4rem;
+      }
+
+      .next-departure-card .card-destination {
+        font-size: 1.2rem;
+        margin-left: 0.5rem;
+      }
+
+      .next-departure-card .card-time {
+        font-size: 1.4rem;
+      }
+
+      .next-departure-card .card-delay {
+        font-size: 0.7rem;
+      }
+
+      .next-departure-card .card-cancelled-label {
+        font-size: 0.7rem;
+      }
+
+      .next-departure-card .card-details {
+        font-size: 0.8rem;
+      }
+    }
     
   </style>
 </head>
@@ -184,12 +315,14 @@
   <div class="tables-container">
     <div class="direction-container">
       <h2 id="northBound">Norrgående</h2>
+      <div id="next-north-card" class="next-departure-card"></div>
       <div class="table-wrapper">
         <table id="north-table"><thead><tr><th>Linje</th><th>Destination</th><th class="time">Tid</th></tr></thead><tbody><tr><td colspan="3">Laddar...</td></tr></tbody></table>
       </div>
     </div>
     <div class="direction-container">
       <h2 id="southBound">Södergående</h2>
+      <div id="next-south-card" class="next-departure-card"></div>
       <div class="table-wrapper">
         <table id="south-table"><thead><tr><th>Linje</th><th class="dest1">Destination</th><th class="time">Tid</th></tr></thead><tbody><tr><td colspan="3">Laddar...</td></tr></tbody></table>
       </div>
@@ -323,14 +456,85 @@
       }, 1000);
     }
 
+    function renderNextDepartureCard(cardContainer, dep) {
+      const { backgroundColor, textColor } = getLineColors(dep.line.designation);
+      const cancelled = dep.state === "CANCELLED";
+      const scheduledTime = new Date(dep.scheduled);
+      const expectedTime = new Date(dep.expected);
+      const diffMin = Math.round((expectedTime - scheduledTime) / 60000);
+      
+      let delayText = "";
+      if (!cancelled && (diffMin > 3 || diffMin < -2)) {
+        delayText = `<span class="card-delay">${diffMin > 0 ? '+' : ''}${diffMin}</span>`;
+      }
+      
+      const timeClass = cancelled ? "card-cancelled" : "";
+      const cancelledLabel = cancelled ? `<span class="card-cancelled-label">Inställd</span>` : "";
+      const warningIcon = (dep.deviations && dep.deviations.length) ? `<span class="card-warning">🟡</span>` : "";
+      
+      const deviationText = (dep.deviations && dep.deviations.length)
+        ? dep.deviations
+            .map(dev => dev.message)
+            .filter(msg => msg && msg.trim().toLowerCase() !== "inställd")
+            .join(" | ")
+        : null;
+      
+      const scheduledStr = scheduledTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const expectedStr = expectedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      
+      cardContainer.innerHTML = `
+        <div class="card-label">Nästa avgång</div>
+        <div class="card-content">
+          <span class="card-line" style="background:${backgroundColor};color:${textColor};">${dep.line.designation}${warningIcon}</span>
+          <span class="card-destination">${dep.destination}</span>
+          <span class="card-time">
+            ${cancelledLabel}
+            ${delayText}
+            <span class="${timeClass}">${dep.display}</span>
+          </span>
+        </div>
+        <div class="card-details">
+          <div><strong>Status:</strong> ${dep.state}</div>
+          <div><strong>Schemalagd:</strong> ${scheduledStr}</div>
+          <div><strong>Förväntad:</strong> ${expectedStr}</div>
+          ${deviationText ? `<div><strong>Avvikelse:</strong> ${deviationText}</div>` : ""}
+        </div>
+      `;
+      
+      // Add click handler to toggle details
+      cardContainer.onclick = () => {
+        const detailsDiv = cardContainer.querySelector(".card-details");
+        detailsDiv.style.display = detailsDiv.style.display === "none" ? "block" : "none";
+        countdown = 30;
+        document.getElementById("countdown").textContent = countdown;
+      };
+    }
+
     function updateTable(tableId, departures) {
+      const cardId = tableId === "north-table" ? "next-north-card" : "next-south-card";
+      const cardContainer = document.getElementById(cardId);
       const tbody = document.getElementById(tableId).querySelector("tbody");
       tbody.innerHTML = "";
+      
       if (!departures.length) {
         tbody.innerHTML = '<tr><td colspan="3">Inga avgångar</td></tr>';
+        cardContainer.style.display = "none";
         return;
       }
-      departures.forEach(dep => {
+
+      // Render the first departure as a card
+      const firstDeparture = departures[0];
+      renderNextDepartureCard(cardContainer, firstDeparture);
+      cardContainer.style.display = "block";
+
+      // Render remaining departures in the table
+      const remainingDepartures = departures.slice(1);
+      if (remainingDepartures.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3">Inga fler avgångar</td></tr>';
+        return;
+      }
+
+      remainingDepartures.forEach(dep => {
         const { backgroundColor, textColor } = getLineColors(dep.line.designation);
         const cancelled = dep.state === "CANCELLED";
         const scheduledTime = new Date(dep.scheduled);
